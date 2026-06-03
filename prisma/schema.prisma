@@ -8,16 +8,19 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Auth (Better-Auth) ───────────────────────────────────────────────
+
 model User {
-  id            String    @id
+  id            String      @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean     @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   sessions      Session[]
   accounts      Account[]
+  dashboards    Dashboard[]
 
   @@unique([email])
   @@map("user")
@@ -69,4 +72,82 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// ─── Dashboards, tracked repos, time-series snapshots ─────────────────
+// A Dashboard is owned by a user. Repos are shared across users (deduped on
+// owner/name) and linked into dashboards through DashboardRepo. The cron
+// resolves a token from a tracking user to refresh each repo over time.
+
+model Dashboard {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  highlightViewId String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime        @default(now())
+  repos           DashboardRepo[]
+  views           View[]
+
+  @@index([userId])
+  @@map("dashboard")
+}
+
+model Repo {
+  id           String          @id @default(cuid())
+  owner         String
+  name          String
+  defaultBranch String?
+  lastSyncedAt  DateTime?
+  stars         Int?
+  openIssues    Int?
+  createdAt    DateTime        @default(now())
+  dashboards   DashboardRepo[]
+  snapshots    Snapshot[]
+
+  @@unique([owner, name])
+  @@map("repo")
+}
+
+model DashboardRepo {
+  id          String    @id @default(cuid())
+  dashboardId String
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  repoId      String
+  repo        Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([dashboardId, repoId])
+  @@index([repoId])
+  @@map("dashboard_repo")
+}
+
+// Tall time series: one row per (repo, metric) capture. `metric` holds a
+// RepoMetric string; `value` its count at `date`.
+model Snapshot {
+  id     String   @id @default(cuid())
+  repoId String
+  repo   Repo     @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  metric String
+  date   DateTime @default(now())
+  value  Int
+
+  @@index([repoId, metric, date])
+  @@map("snapshot")
+}
+
+// Panel definition for a dashboard. `type` names the renderer; `config` holds
+// its settings as JSON. Defined now; rendering comes later.
+model View {
+  id          String    @id @default(cuid())
+  dashboardId String
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  type        String
+  config      Json
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([dashboardId])
+  @@map("view")
 }
