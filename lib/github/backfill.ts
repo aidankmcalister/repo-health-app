@@ -1,11 +1,13 @@
 import prisma from "@/app/lib/prisma";
 import type { RepoMetric } from "@/lib/metrics";
-import { githubGraphql } from "./client";
+import { getGithubAccessToken, githubGraphql } from "./client";
+import { fetchRepoData } from "./repo";
 
 const DAY_MS = 86_400_000;
 const WINDOW_DAYS = 90;
 const PAGE_SIZE = 100;
 const MAX_PAGES = 20; // cap cost; beyond this a metric is left flat to avoid bad data
+const SEARCH_MAX_PAGES = 10; // GitHub search hard-caps at 1000 results (10 pages)
 
 type CurrentMetrics = Record<RepoMetric, number>;
 type EventDates = { dates: number[]; capped: boolean };
@@ -89,6 +91,67 @@ export async function backfillRepo(
   if (rows.length > 0) {
     await prisma.snapshot.createMany({ data: rows });
   }
+
+  // Mark the attempt so it isn't repeated, even if some metrics were skipped.
+  await prisma.repo.update({
+    where: { id: repoId },
+    data: { backfilledAt: new Date() },
+  });
+}
+
+/**
+ * Re-runs backfill for every repo that has never been backfilled (e.g. repos
+ * added before backfill existed). Idempotent: backfillRepo stamps backfilledAt,
+ * so a repo is processed at most once.
+ */
+export async function backfillMissingRepos(): Promise<{
+  processed: number;
+  skipped: string[];
+}> {
+  const repos = await prisma.repo.findMany({
+    where: { backfilledAt: null },
+    select: { id: true, owner: true, name: true },
+  });
+
+  let processed = 0;
+  const skipped: string[] = [];
+
+  for (const repo of repos) {
+    try {
+      const token = await resolveTokenForRepo(repo.id);
+      if (!token) {
+        skipped.push(`${repo.owner}/${repo.name}: no usable token`);
+        continue;
+      }
+      const data = await fetchRepoData(token, repo.owner, repo.name);
+      if (!data) {
+        skipped.push(`${repo.owner}/${repo.name}: not accessible`);
+        continue;
+      }
+      await backfillRepo(token, repo.owner, repo.name, repo.id, data.metrics);
+      processed++;
+    } catch (error) {
+      skipped.push(
+        `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : "failed"}`,
+      );
+    }
+  }
+
+  return { processed, skipped };
+}
+
+/** A token from any user who tracks this repo, or null. */
+async function resolveTokenForRepo(repoId: string): Promise<string | null> {
+  const links = await prisma.dashboardRepo.findMany({
+    where: { repoId },
+    select: { dashboard: { select: { userId: true } } },
+  });
+  const userIds = [...new Set(links.map((link) => link.dashboard.userId))];
+  for (const userId of userIds) {
+    const token = await getGithubAccessToken(userId).catch(() => null);
+    if (token) return token;
+  }
+  return null;
 }
 
 /** Count of event dates strictly after time `t`. */
@@ -145,7 +208,7 @@ async function searchEventDates(
   const dates: number[] = [];
   let cursor: string | null = null;
 
-  for (let page = 0; page < MAX_PAGES; page++) {
+  for (let page = 0; page < SEARCH_MAX_PAGES; page++) {
     const data: SearchResponse = await githubGraphql<SearchResponse>(
       token,
       SEARCH_QUERY,

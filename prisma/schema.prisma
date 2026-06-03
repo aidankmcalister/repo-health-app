@@ -100,6 +100,7 @@ model Repo {
   name          String
   defaultBranch String?
   lastSyncedAt  DateTime?
+  backfilledAt  DateTime?
   stars         Int?
   openIssues    Int?
   createdAt     DateTime        @default(now())
