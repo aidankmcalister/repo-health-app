@@ -25,7 +25,10 @@ import { METRIC_LABELS, REPO_METRICS, type RepoMetric } from "@/lib/metrics";
 import {
   ALIASES,
   buildViewData,
+  datapointColor,
+  datapointDisplayLabel,
   defaultShowLegend,
+  VIEW_COLORS,
   VIEW_TYPE_NUMBER,
   VIEW_TYPES,
   type HistoryPoint,
@@ -92,6 +95,20 @@ export function ViewDialog(props: ViewDialogProps) {
       ? props.initialConfig.showLegend ?? defaultShowLegend(VIEW_TYPE_NUMBER)
       : defaultShowLegend(VIEW_TYPE_NUMBER),
   );
+  const [showRepoInLabels, setShowRepoInLabels] = useState(
+    isEdit ? props.initialConfig.showRepoInLabels ?? false : false,
+  );
+  const [yDecimals, setYDecimals] = useState(
+    isEdit && props.initialConfig.yAxis?.decimals != null
+      ? String(props.initialConfig.yAxis.decimals)
+      : "auto",
+  );
+  const [yPrefix, setYPrefix] = useState(
+    isEdit ? props.initialConfig.yAxis?.prefix ?? "" : "",
+  );
+  const [yPostfix, setYPostfix] = useState(
+    isEdit ? props.initialConfig.yAxis?.postfix ?? "" : "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDelete] = useTransition();
@@ -106,6 +123,12 @@ export function ViewDialog(props: ViewDialogProps) {
     prefix: prefix.trim() ? prefix : null,
     postfix: postfix.trim() ? postfix : null,
     showLegend,
+    showRepoInLabels,
+    yAxis: {
+      decimals: yDecimals === "auto" ? null : Number(yDecimals),
+      prefix: yPrefix.trim() ? yPrefix : null,
+      postfix: yPostfix.trim() ? yPostfix : null,
+    },
   };
 
   function changeType(next: string) {
@@ -117,7 +140,15 @@ export function ViewDialog(props: ViewDialogProps) {
     const used = new Set(datapoints.map((point) => point.alias));
     const alias = ALIASES.find((letter) => !used.has(letter));
     if (!alias) return;
-    setDatapoints([...datapoints, { alias, repoId: repos[0].id, metric: "stars" }]);
+    setDatapoints([
+      ...datapoints,
+      {
+        alias,
+        repoId: repos[0].id,
+        metric: "stars",
+        color: VIEW_COLORS[datapoints.length % VIEW_COLORS.length].value,
+      },
+    ]);
   }
 
   function updateDatapoint(alias: string, patch: Partial<ViewDatapoint>) {
@@ -164,7 +195,7 @@ export function ViewDialog(props: ViewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="sm:max-w-3xl">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{isEdit ? "Edit view" : "New view"}</DialogTitle>
@@ -173,7 +204,7 @@ export function ViewDialog(props: ViewDialogProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 md:grid-cols-[1fr_320px]">
+          <div className="grid items-start gap-6 md:grid-cols-[1fr_340px]">
             <div className="flex flex-col gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="view-title">Title</Label>
@@ -212,26 +243,30 @@ export function ViewDialog(props: ViewDialogProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="view-prefix">Prefix</Label>
-                  <Input
-                    id="view-prefix"
-                    value={prefix}
-                    onChange={(event) => setPrefix(event.target.value)}
-                    placeholder="$"
-                    className="w-24"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="view-postfix">Postfix</Label>
-                  <Input
-                    id="view-postfix"
-                    value={postfix}
-                    onChange={(event) => setPostfix(event.target.value)}
-                    placeholder="%"
-                    className="w-24"
-                  />
-                </div>
+                {type === VIEW_TYPE_NUMBER ? (
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="view-prefix">Prefix</Label>
+                      <Input
+                        id="view-prefix"
+                        value={prefix}
+                        onChange={(event) => setPrefix(event.target.value)}
+                        placeholder="$"
+                        className="w-24"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="view-postfix">Postfix</Label>
+                      <Input
+                        id="view-postfix"
+                        value={postfix}
+                        onChange={(event) => setPostfix(event.target.value)}
+                        placeholder="%"
+                        className="w-24"
+                      />
+                    </div>
+                  </>
+                ) : null}
               </div>
 
               <div className="grid gap-2">
@@ -256,7 +291,7 @@ export function ViewDialog(props: ViewDialogProps) {
                   <p className="text-sm text-muted-foreground">No data points yet.</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
-                    {datapoints.map((point) => (
+                    {datapoints.map((point, index) => (
                       <li key={point.alias} className="flex items-center gap-2">
                         <span className="w-6 text-center font-mono font-medium">
                           {point.alias}
@@ -286,13 +321,37 @@ export function ViewDialog(props: ViewDialogProps) {
                             })
                           }
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-36">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {REPO_METRICS.map((metric) => (
                               <SelectItem key={metric} value={metric}>
                                 {METRIC_LABELS[metric]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={point.color ?? datapointColor(point, index)}
+                          onValueChange={(color) =>
+                            updateDatapoint(point.alias, { color })
+                          }
+                        >
+                          <SelectTrigger className="w-16">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="min-w-0">
+                            {VIEW_COLORS.map((c) => (
+                              <SelectItem
+                                key={c.value}
+                                value={c.value}
+                                textValue={c.label}
+                              >
+                                <span
+                                  className="size-3 rounded-full"
+                                  style={{ backgroundColor: c.value }}
+                                />
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -336,6 +395,19 @@ export function ViewDialog(props: ViewDialogProps) {
                 ) : null}
               </div>
 
+            </div>
+
+            <div className="flex flex-col gap-4 md:border-l md:pl-6">
+              <div className="flex flex-col gap-2">
+                <Label>Preview</Label>
+                <ViewPreview
+                  type={type}
+                  config={config}
+                  repos={repos}
+                  history={history}
+                />
+              </div>
+
               <div className="flex items-center gap-2">
                 <Switch
                   id="legend-toggle"
@@ -344,16 +416,56 @@ export function ViewDialog(props: ViewDialogProps) {
                 />
                 <Label htmlFor="legend-toggle">Show legend</Label>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <Label>Preview</Label>
-              <ViewPreview
-                type={type}
-                config={config}
-                repos={repos}
-                history={history}
-              />
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="repo-label-toggle"
+                  checked={showRepoInLabels}
+                  onCheckedChange={setShowRepoInLabels}
+                />
+                <Label htmlFor="repo-label-toggle">Show repo in labels</Label>
+              </div>
+
+              {type !== VIEW_TYPE_NUMBER ? (
+                <div className="grid gap-2">
+                  <Label>Y-axis labels</Label>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Decimals</span>
+                      <Select value={yDecimals} onValueChange={setYDecimals}>
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Auto</SelectItem>
+                          <SelectItem value="0">0</SelectItem>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Prefix</span>
+                      <Input
+                        value={yPrefix}
+                        onChange={(event) => setYPrefix(event.target.value)}
+                        placeholder="$"
+                        className="w-24"
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Postfix</span>
+                      <Input
+                        value={yPostfix}
+                        onChange={(event) => setYPostfix(event.target.value)}
+                        placeholder="%"
+                        className="w-24"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -393,11 +505,6 @@ function ViewPreview({
 }) {
   const data = buildViewData(config, repos, history);
 
-  function repoLabel(repoId: string): string {
-    const repo = repos.find((r) => r.id === repoId);
-    return repo ? `${repo.owner}/${repo.name}` : "unknown repo";
-  }
-
   return (
     <div className="flex flex-col gap-3 rounded-xl border p-4">
       <div>
@@ -415,11 +522,14 @@ function ViewPreview({
 
       {config.showLegend && config.datapoints.length > 0 ? (
         <ul className="flex flex-col gap-1 text-sm">
-          {config.datapoints.map((point) => (
+          {config.datapoints.map((point, index) => (
             <li key={point.alias} className="flex items-center gap-2">
-              <span className="font-mono font-medium">{point.alias}</span>
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: datapointColor(point, index) }}
+              />
               <span className="truncate text-muted-foreground">
-                {repoLabel(point.repoId)} · {METRIC_LABELS[point.metric]}
+                {datapointDisplayLabel(point, repos, config.showRepoInLabels)}
               </span>
             </li>
           ))}

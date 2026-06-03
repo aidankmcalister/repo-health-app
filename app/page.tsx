@@ -122,6 +122,8 @@ function highlightFor(dashboard: Dashboard): {
   const config = view.config as unknown as ViewConfig;
   const repos = dashboard.repos.map(({ repo }) => ({
     id: repo.id,
+    owner: repo.owner,
+    name: repo.name,
     stars: repo.stars,
     openIssues: repo.openIssues,
   }));

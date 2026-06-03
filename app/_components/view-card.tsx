@@ -4,8 +4,13 @@ import { ViewDialog } from "@/app/_components/view-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Visualization } from "@/components/visualizations";
-import { METRIC_LABELS } from "@/lib/metrics";
-import { buildViewData, type HistoryPoint, type ViewConfig } from "@/lib/views";
+import {
+  buildViewData,
+  datapointColor,
+  datapointDisplayLabel,
+  type HistoryPoint,
+  type ViewConfig,
+} from "@/lib/views";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 
@@ -29,14 +34,9 @@ export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
   const { config, type } = view;
   const data = buildViewData(config, repos, history);
 
-  function repoLabel(repoId: string): string {
-    const repo = repos.find((r) => r.id === repoId);
-    return repo ? `${repo.owner}/${repo.name}` : "unknown repo";
-  }
-
   return (
     <Card className="group w-80 gap-0 py-0">
-      <CardContent className="flex flex-col gap-3 p-4">
+      <CardContent className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate font-semibold leading-tight">
@@ -63,11 +63,14 @@ export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
 
         {config.showLegend ? (
           <ul className="flex flex-col gap-1 text-sm">
-            {config.datapoints.map((point) => (
+            {config.datapoints.map((point, index) => (
               <li key={point.alias} className="flex items-center gap-2">
-                <span className="font-mono font-medium">{point.alias}</span>
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: datapointColor(point, index) }}
+                />
                 <span className="truncate text-muted-foreground">
-                  {repoLabel(point.repoId)} · {METRIC_LABELS[point.metric]}
+                  {datapointDisplayLabel(point, repos, config.showRepoInLabels)}
                 </span>
               </li>
             ))}

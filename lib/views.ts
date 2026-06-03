@@ -1,4 +1,4 @@
-import type { RepoMetric } from "@/lib/metrics";
+import { METRIC_LABELS, type RepoMetric } from "@/lib/metrics";
 
 // Visualization types. Add a new entry here + a renderer in
 // components/visualizations to support a new chart.
@@ -23,11 +23,35 @@ export function isValidViewType(type: string): boolean {
 // Data-point labels A–Z (max 26 per view).
 export const ALIASES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-// One labelled input to a view: a metric of a specific repo.
+// Vivid series colors (the chart-N theme tokens are grayscale).
+export const VIEW_COLORS = [
+  { value: "#2563eb", label: "Blue" },
+  { value: "#16a34a", label: "Green" },
+  { value: "#dc2626", label: "Red" },
+  { value: "#d97706", label: "Amber" },
+  { value: "#7c3aed", label: "Purple" },
+  { value: "#0891b2", label: "Cyan" },
+  { value: "#db2777", label: "Pink" },
+  { value: "#475569", label: "Slate" },
+] as const;
+
+export function datapointColor(dp: ViewDatapoint, index: number): string {
+  return dp.color ?? VIEW_COLORS[index % VIEW_COLORS.length].value;
+}
+
+// One labelled input to a view: a metric of a specific repo, optional color.
 export type ViewDatapoint = {
   alias: string;
   repoId: string;
   metric: RepoMetric;
+  color?: string;
+};
+
+// Y-axis label formatting for charts.
+export type YAxisConfig = {
+  decimals: number | null; // null = auto
+  prefix: string | null;
+  postfix: string | null;
 };
 
 // Everything a view needs, stored in View.config (Json).
@@ -39,7 +63,36 @@ export type ViewConfig = {
   prefix: string | null;
   postfix: string | null;
   showLegend: boolean;
+  showRepoInLabels: boolean;
+  yAxis?: YAxisConfig;
 };
+
+/** Formats a y-axis tick using the view's decimals/prefix/postfix (auto if unset). */
+export function formatAxisValue(value: number, yAxis?: YAxisConfig | null): string {
+  const decimals = yAxis?.decimals ?? null;
+  const formatted =
+    decimals === null
+      ? Number.isInteger(value)
+        ? value.toLocaleString()
+        : value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+      : value.toLocaleString(undefined, {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        });
+  return `${yAxis?.prefix ?? ""}${formatted}${yAxis?.postfix ?? ""}`;
+}
+
+/** A data point's display label, optionally including the repo. */
+export function datapointDisplayLabel(
+  dp: ViewDatapoint,
+  repos: { id: string; owner: string; name: string }[],
+  showRepo: boolean,
+): string {
+  const metric = METRIC_LABELS[dp.metric];
+  if (!showRepo) return metric;
+  const repo = repos.find((r) => r.id === dp.repoId);
+  return repo ? `${repo.owner}/${repo.name} · ${metric}` : metric;
+}
 
 /** Whether a view type shows its data-point legend by default. */
 export function defaultShowLegend(type: string): boolean {
@@ -60,19 +113,26 @@ export type HistoryPoint = {
   value: number;
 };
 
-// A repo's current cached metric values.
+// A repo's current cached metric values + identity (for chart series labels).
 export type ViewRepoValues = {
   id: string;
+  owner: string;
+  name: string;
   stars: number | null;
   openIssues: number | null;
 };
 
-// Everything a visualization renderer needs: latest value, a time series, and a
-// per-data-point breakdown of current values (for categorical charts).
+// Everything a visualization renderer needs.
 export type ViewData = {
-  value: number | null;
-  series: { date: number; value: number }[];
-  breakdown: { alias: string; value: number }[];
+  value: number | null; // latest computed value (Big Number)
+  series: { date: number; value: number }[]; // single computed series
+  breakdown: { alias: string; value: number }[]; // current value per data point
+  // Wide rows + series for multi-line charts. One series per data point
+  // (no formula) or a single computed series (formula). `key` is a safe row
+  // value key (no spaces — special chars break SVG gradient ids); `label` is
+  // the human tooltip label; `color` is the series stroke/fill.
+  chartRows: Record<string, number>[];
+  chartLines: { key: string; label: string; color: string }[];
 };
 
 /** Builds the data a view's visualization needs from current values + history. */
@@ -106,10 +166,91 @@ export function buildViewData(
     .map((point) => ({ alias: point.alias, value: resolve(point.repoId, point.metric) }))
     .filter((entry): entry is { alias: string; value: number } => entry.value !== null);
 
+  const chart = computeChart(config, repos, history);
+
   return {
     value: computeViewValue(config, resolve),
     series: computeViewSeries(config, history),
     breakdown,
+    chartRows: chart.rows,
+    chartLines: chart.lines,
+  };
+}
+
+/**
+ * Builds wide chart rows + series keys. With a formula (or a single data point)
+ * it's one computed series; otherwise one series per data point so each renders
+ * as its own line. Series keys double as tooltip labels.
+ */
+function computeChart(
+  config: ViewConfig,
+  repos: ViewRepoValues[],
+  history: HistoryPoint[],
+): {
+  rows: Record<string, number>[];
+  lines: { key: string; label: string; color: string }[];
+} {
+  const showRepo = config.showRepoInLabels ?? false;
+
+  if (config.formula || config.datapoints.length <= 1) {
+    const label = config.title?.trim() || "Value";
+    const color = config.datapoints[0]
+      ? datapointColor(config.datapoints[0], 0)
+      : VIEW_COLORS[0].value;
+    const series = computeViewSeries(config, history);
+    return {
+      rows: series.map((point) => ({ date: point.date, s0: point.value })),
+      lines: series.length > 0 ? [{ key: "s0", label, color }] : [],
+    };
+  }
+
+  const byKey = new Map<string, { date: number; value: number }[]>();
+  for (const point of history) {
+    const key = `${point.repoId}|${point.metric}`;
+    const list = byKey.get(key);
+    if (list) list.push({ date: point.date, value: point.value });
+    else byKey.set(key, [{ date: point.date, value: point.value }]);
+  }
+  for (const list of byKey.values()) list.sort((a, b) => a.date - b.date);
+
+  const usedLabels = new Set<string>();
+  const defs = config.datapoints.map((dp, index) => {
+    let label = datapointDisplayLabel(dp, repos, showRepo);
+    while (usedLabels.has(label)) label = `${label} (${dp.alias})`;
+    usedLabels.add(label);
+    return {
+      key: `s${index}`, // safe key — SVG gradient ids can't contain spaces/·//
+      label,
+      color: datapointColor(dp, index),
+      points: byKey.get(`${dp.repoId}|${dp.metric}`) ?? [],
+    };
+  });
+
+  const dateSet = new Set<number>();
+  for (const def of defs) for (const point of def.points) dateSet.add(point.date);
+  const dates = [...dateSet].sort((a, b) => a - b);
+
+  const rows: Record<string, number>[] = [];
+  for (const date of dates) {
+    const row: Record<string, number> = { date };
+    let any = false;
+    for (const def of defs) {
+      const value = latestAtOrBefore(def.points, date);
+      if (value !== null) {
+        row[def.key] = value;
+        any = true;
+      }
+    }
+    if (any) rows.push(row);
+  }
+
+  return {
+    rows,
+    lines: defs.map((def) => ({
+      key: def.key,
+      label: def.label,
+      color: def.color,
+    })),
   };
 }
 

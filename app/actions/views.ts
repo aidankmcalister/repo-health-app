@@ -168,6 +168,7 @@ async function validateConfig(
         alias: point.alias,
         repoId: point.repoId,
         metric: point.metric as RepoMetric,
+        ...(point.color ? { color: point.color } : {}),
       })),
       formula: formula.length > 0 ? formula : null,
       prefix: prefix.length > 0 ? prefix : null,
@@ -176,8 +177,19 @@ async function validateConfig(
         typeof config.showLegend === "boolean"
           ? config.showLegend
           : defaultShowLegend(VIEW_TYPE_NUMBER),
+      showRepoInLabels: config.showRepoInLabels === true,
+      yAxis: {
+        decimals: sanitizeDecimals(config.yAxis?.decimals),
+        prefix: config.yAxis?.prefix?.trim() || null,
+        postfix: config.yAxis?.postfix?.trim() || null,
+      },
     },
   };
+}
+
+function sanitizeDecimals(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.min(6, Math.max(0, Math.floor(value)));
 }
 
 function messageFor(error: unknown, fallback: string): string {
