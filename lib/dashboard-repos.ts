@@ -1,4 +1,5 @@
 import prisma from "@/app/lib/prisma";
+import { backfillRepo } from "@/lib/github/backfill";
 import { getGithubAccessToken } from "@/lib/github/client";
 import { fetchRepoData } from "@/lib/github/repo";
 import { REPO_METRICS } from "@/lib/metrics";
@@ -37,6 +38,12 @@ export async function linkRepo(
     throw new Error(`Repo ${owner}/${name} not found or not accessible.`);
   }
 
+  // Whether this repo is brand new (so we backfill history once).
+  const existing = await prisma.repo.findUnique({
+    where: { owner_name: { owner: data.owner, name: data.name } },
+    select: { id: true },
+  });
+
   const date = new Date();
   const repoData = {
     stars: data.metrics.stars,
@@ -47,7 +54,7 @@ export async function linkRepo(
 
   // Link, cache fields, and first snapshot together so a repo is never left
   // linked-but-unsynced if a later step fails.
-  await prisma.$transaction(async (tx) => {
+  const repoId = await prisma.$transaction(async (tx) => {
     const repo = await tx.repo.upsert({
       where: { owner_name: { owner: data.owner, name: data.name } },
       update: repoData,
@@ -66,7 +73,15 @@ export async function linkRepo(
         date,
       })),
     });
+    return repo.id;
   });
+
+  // First time we've ever seen this repo: reconstruct ~90 days of history.
+  if (!existing) {
+    await backfillRepo(token, data.owner, data.name, repoId, data.metrics).catch(
+      () => null,
+    );
+  }
 }
 
 /** Unlinks a repo from a dashboard. Leaves the shared Repo in place. */

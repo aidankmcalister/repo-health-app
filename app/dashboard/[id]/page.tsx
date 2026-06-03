@@ -25,6 +25,14 @@ export default async function DashboardPage({
   }
 
   const repos = dashboard.repos.map(({ repo }) => repo);
+  const history = repos.flatMap((repo) =>
+    repo.snapshots.map((snapshot) => ({
+      repoId: repo.id,
+      metric: snapshot.metric,
+      date: snapshot.date.getTime(),
+      value: snapshot.value,
+    })),
+  );
 
   return (
     <main className="flex flex-col gap-8 p-8">
@@ -52,6 +60,7 @@ export default async function DashboardPage({
             stars,
             openIssues,
           }))}
+          history={history}
         />
       </div>
 
@@ -64,7 +73,11 @@ export default async function DashboardPage({
             {dashboard.views.map((view) => (
               <ViewCard
                 key={view.id}
-                view={{ id: view.id, config: view.config as unknown as ViewConfig }}
+                view={{
+                  id: view.id,
+                  type: view.type,
+                  config: view.config as unknown as ViewConfig,
+                }}
                 dashboardId={dashboard.id}
                 repos={repos.map(({ id, owner, name, stars, openIssues }) => ({
                   id,
@@ -73,6 +86,7 @@ export default async function DashboardPage({
                   stars,
                   openIssues,
                 }))}
+                history={history}
               />
             ))}
           </div>

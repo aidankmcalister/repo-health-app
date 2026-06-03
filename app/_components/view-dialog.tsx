@@ -20,13 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Visualization } from "@/components/visualizations";
 import { METRIC_LABELS, REPO_METRICS, type RepoMetric } from "@/lib/metrics";
 import {
   ALIASES,
-  computeViewValue,
+  buildViewData,
   defaultShowLegend,
-  formatViewValue,
   VIEW_TYPE_NUMBER,
+  VIEW_TYPES,
+  type HistoryPoint,
   type ViewConfig,
   type ViewDatapoint,
 } from "@/lib/views";
@@ -47,16 +49,25 @@ type ViewDialogProps = {
   onOpenChange: (open: boolean) => void;
   dashboardId: string;
   repos: ViewRepo[];
+  history: HistoryPoint[];
 } & (
-  | { mode?: "create"; viewId?: never; initialConfig?: never }
-  | { mode: "edit"; viewId: string; initialConfig: ViewConfig }
+  | { mode?: "create"; viewId?: never; initialType?: never; initialConfig?: never }
+  | {
+      mode: "edit";
+      viewId: string;
+      initialType: string;
+      initialConfig: ViewConfig;
+    }
 );
 
 export function ViewDialog(props: ViewDialogProps) {
-  const { open, onOpenChange, dashboardId, repos } = props;
+  const { open, onOpenChange, dashboardId, repos, history } = props;
   const isEdit = props.mode === "edit";
   const router = useRouter();
 
+  const [type, setType] = useState(
+    isEdit ? props.initialType : VIEW_TYPE_NUMBER,
+  );
   const [title, setTitle] = useState(isEdit ? props.initialConfig.title : "");
   const [subtitle, setSubtitle] = useState(
     isEdit ? props.initialConfig.subtitle ?? "" : "",
@@ -87,20 +98,6 @@ export function ViewDialog(props: ViewDialogProps) {
 
   const canAddDatapoint = repos.length > 0 && datapoints.length < ALIASES.length;
 
-  function handleDelete() {
-    if (!isEdit) return;
-    setError(null);
-    startDelete(async () => {
-      const result = await deleteView(props.viewId);
-      if (result.ok) {
-        onOpenChange(false);
-        router.refresh();
-      } else {
-        setError(result.error ?? "Failed to delete view.");
-      }
-    });
-  }
-
   const config: ViewConfig = {
     title,
     subtitle: subtitle.trim() ? subtitle : null,
@@ -110,6 +107,11 @@ export function ViewDialog(props: ViewDialogProps) {
     postfix: postfix.trim() ? postfix : null,
     showLegend,
   };
+
+  function changeType(next: string) {
+    setType(next);
+    setShowLegend(defaultShowLegend(next));
+  }
 
   function addDatapoint() {
     const used = new Set(datapoints.map((point) => point.alias));
@@ -130,13 +132,27 @@ export function ViewDialog(props: ViewDialogProps) {
     setDatapoints((current) => current.filter((point) => point.alias !== alias));
   }
 
+  function handleDelete() {
+    if (!isEdit) return;
+    setError(null);
+    startDelete(async () => {
+      const result = await deleteView(props.viewId);
+      if (result.ok) {
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        setError(result.error ?? "Failed to delete view.");
+      }
+    });
+  }
+
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
       const result = isEdit
-        ? await updateView(props.viewId, config)
-        : await createView(dashboardId, config);
+        ? await updateView(props.viewId, type, config)
+        : await createView(dashboardId, type, config);
       if (result.ok) {
         onOpenChange(false);
         router.refresh();
@@ -157,7 +173,7 @@ export function ViewDialog(props: ViewDialogProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 md:grid-cols-[1fr_300px]">
+          <div className="grid gap-6 md:grid-cols-[1fr_320px]">
             <div className="flex flex-col gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="view-title">Title</Label>
@@ -183,12 +199,16 @@ export function ViewDialog(props: ViewDialogProps) {
               <div className="flex flex-wrap items-end gap-3">
                 <div className="grid gap-2">
                   <Label>Visualization</Label>
-                  <Select value="number">
+                  <Select value={type} onValueChange={changeType}>
                     <SelectTrigger className="w-44">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="number">Big Number</SelectItem>
+                      {VIEW_TYPES.map((entry) => (
+                        <SelectItem key={entry.type} value={entry.type}>
+                          {entry.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -328,7 +348,12 @@ export function ViewDialog(props: ViewDialogProps) {
 
             <div className="flex flex-col gap-2">
               <Label>Preview</Label>
-              <ViewPreview config={config} repos={repos} />
+              <ViewPreview
+                type={type}
+                config={config}
+                repos={repos}
+                history={history}
+              />
             </div>
           </div>
 
@@ -356,40 +381,40 @@ export function ViewDialog(props: ViewDialogProps) {
 }
 
 function ViewPreview({
+  type,
   config,
   repos,
+  history,
 }: {
+  type: string;
   config: ViewConfig;
   repos: ViewRepo[];
+  history: HistoryPoint[];
 }) {
-  function metricFor(repoId: string, metric: RepoMetric): number | null {
-    const repo = repos.find((r) => r.id === repoId);
-    if (!repo) return null;
-    return metric === "stars" ? repo.stars : repo.openIssues;
-  }
+  const data = buildViewData(config, repos, history);
 
   function repoLabel(repoId: string): string {
     const repo = repos.find((r) => r.id === repoId);
     return repo ? `${repo.owner}/${repo.name}` : "unknown repo";
   }
 
-  const value = formatViewValue(computeViewValue(config, metricFor), config);
-
   return (
-    <div className="rounded-xl border p-4">
-      <p className="truncate font-semibold leading-tight">
-        {config.title || "Untitled view"}
-      </p>
-      {config.subtitle ? (
-        <p className="truncate text-xs text-muted-foreground">
-          {config.subtitle}
+    <div className="flex flex-col gap-3 rounded-xl border p-4">
+      <div>
+        <p className="truncate font-semibold leading-tight">
+          {config.title || "Untitled view"}
         </p>
-      ) : null}
+        {config.subtitle ? (
+          <p className="truncate text-xs text-muted-foreground">
+            {config.subtitle}
+          </p>
+        ) : null}
+      </div>
 
-      <p className="mt-2 text-4xl font-bold tabular-nums">{value}</p>
+      <Visualization type={type} config={config} data={data} />
 
       {config.showLegend && config.datapoints.length > 0 ? (
-        <ul className="mt-3 flex flex-col gap-1 text-sm">
+        <ul className="flex flex-col gap-1 text-sm">
           {config.datapoints.map((point) => (
             <li key={point.alias} className="flex items-center gap-2">
               <span className="font-mono font-medium">{point.alias}</span>

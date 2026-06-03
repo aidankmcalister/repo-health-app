@@ -9,6 +9,7 @@ import {
   ALIASES,
   VIEW_TYPE_NUMBER,
   defaultShowLegend,
+  isValidViewType,
   type ViewConfig,
 } from "@/lib/views";
 import { revalidatePath } from "next/cache";
@@ -18,14 +19,19 @@ type ActionResult = { ok: boolean; error?: string };
 const ALLOWED_METRICS = new Set<string>(REPO_METRICS);
 const ALLOWED_ALIASES = new Set(ALIASES);
 
-/** Creates a Big Number view for a dashboard from its datapoints and formula. */
+/** Creates a view for a dashboard from its type, datapoints, and formula. */
 export async function createView(
   dashboardId: string,
+  type: string,
   config: ViewConfig,
 ): Promise<ActionResult> {
   try {
     const user = await requireUser();
     await assertOwnedDashboard(dashboardId, user.id);
+
+    if (!isValidViewType(type)) {
+      return { ok: false, error: "Unknown view type." };
+    }
 
     const validated = await validateConfig(dashboardId, config);
     if ("error" in validated) {
@@ -36,7 +42,7 @@ export async function createView(
     await prisma.view.create({
       data: {
         dashboardId,
-        type: VIEW_TYPE_NUMBER,
+        type,
         order,
         config: validated.config as unknown as Prisma.InputJsonValue,
       },
@@ -52,6 +58,7 @@ export async function createView(
 /** Updates an existing view the current user owns (via its dashboard). */
 export async function updateView(
   viewId: string,
+  type: string,
   config: ViewConfig,
 ): Promise<ActionResult> {
   try {
@@ -66,6 +73,10 @@ export async function updateView(
 
     await assertOwnedDashboard(view.dashboardId, user.id);
 
+    if (!isValidViewType(type)) {
+      return { ok: false, error: "Unknown view type." };
+    }
+
     const validated = await validateConfig(view.dashboardId, config);
     if ("error" in validated) {
       return { ok: false, error: validated.error };
@@ -73,7 +84,10 @@ export async function updateView(
 
     await prisma.view.update({
       where: { id: viewId },
-      data: { config: validated.config as unknown as Prisma.InputJsonValue },
+      data: {
+        type,
+        config: validated.config as unknown as Prisma.InputJsonValue,
+      },
     });
 
     revalidatePath(`/dashboard/${view.dashboardId}`);

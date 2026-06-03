@@ -10,6 +10,8 @@ export type RepoData = {
   metrics: Record<RepoMetric, number>;
 };
 
+type CountField = { totalCount: number };
+
 type RepoDataResponse = {
   repository: {
     name: string;
@@ -17,7 +19,13 @@ type RepoDataResponse = {
     nameWithOwner: string;
     defaultBranchRef: { name: string } | null;
     stargazerCount: number;
-    issues: { totalCount: number };
+    forkCount: number;
+    watchers: CountField;
+    openIssues: CountField;
+    closedIssues: CountField;
+    openPrs: CountField;
+    mergedPrs: CountField;
+    closedPrs: CountField;
   } | null;
 };
 
@@ -33,7 +41,23 @@ const REPO_DATA_QUERY = /* GraphQL */ `
         name
       }
       stargazerCount
-      issues(states: OPEN) {
+      forkCount
+      watchers {
+        totalCount
+      }
+      openIssues: issues(states: OPEN) {
+        totalCount
+      }
+      closedIssues: issues(states: CLOSED) {
+        totalCount
+      }
+      openPrs: pullRequests(states: OPEN) {
+        totalCount
+      }
+      mergedPrs: pullRequests(states: MERGED) {
+        totalCount
+      }
+      closedPrs: pullRequests(states: CLOSED) {
         totalCount
       }
     }
@@ -67,7 +91,13 @@ export async function fetchRepoData(
     defaultBranch: repo.defaultBranchRef?.name ?? null,
     metrics: {
       stars: repo.stargazerCount,
-      open_issues: repo.issues.totalCount,
+      forks: repo.forkCount,
+      watchers: repo.watchers.totalCount,
+      open_issues: repo.openIssues.totalCount,
+      closed_issues: repo.closedIssues.totalCount,
+      open_prs: repo.openPrs.totalCount,
+      merged_prs: repo.mergedPrs.totalCount,
+      closed_prs: repo.closedPrs.totalCount,
     },
   };
 }

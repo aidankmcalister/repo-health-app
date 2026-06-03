@@ -3,8 +3,9 @@
 import { ViewDialog } from "@/app/_components/view-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { METRIC_LABELS, type RepoMetric } from "@/lib/metrics";
-import { computeViewValue, formatViewValue, type ViewConfig } from "@/lib/views";
+import { Visualization } from "@/components/visualizations";
+import { METRIC_LABELS } from "@/lib/metrics";
+import { buildViewData, type HistoryPoint, type ViewConfig } from "@/lib/views";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 
@@ -17,27 +18,21 @@ type ViewCardRepo = {
 };
 
 type ViewCardProps = {
-  view: { id: string; config: ViewConfig };
+  view: { id: string; type: string; config: ViewConfig };
   dashboardId: string;
   repos: ViewCardRepo[];
+  history: HistoryPoint[];
 };
 
-export function ViewCard({ view, dashboardId, repos }: ViewCardProps) {
+export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
   const [editOpen, setEditOpen] = useState(false);
-  const { config } = view;
+  const { config, type } = view;
+  const data = buildViewData(config, repos, history);
 
   function repoLabel(repoId: string): string {
     const repo = repos.find((r) => r.id === repoId);
     return repo ? `${repo.owner}/${repo.name}` : "unknown repo";
   }
-
-  function metricFor(repoId: string, metric: RepoMetric): number | null {
-    const repo = repos.find((r) => r.id === repoId);
-    if (!repo) return null;
-    return metric === "stars" ? repo.stars : repo.openIssues;
-  }
-
-  const value = formatViewValue(computeViewValue(config, metricFor), config);
 
   return (
     <Card className="group w-80 gap-0 py-0">
@@ -64,7 +59,7 @@ export function ViewCard({ view, dashboardId, repos }: ViewCardProps) {
           </Button>
         </div>
 
-        <p className="text-4xl font-bold tabular-nums">{value}</p>
+        <Visualization type={type} config={config} data={data} />
 
         {config.showLegend ? (
           <ul className="flex flex-col gap-1 text-sm">
@@ -72,8 +67,7 @@ export function ViewCard({ view, dashboardId, repos }: ViewCardProps) {
               <li key={point.alias} className="flex items-center gap-2">
                 <span className="font-mono font-medium">{point.alias}</span>
                 <span className="truncate text-muted-foreground">
-                  {repoLabel(point.repoId)} ·{" "}
-                  {METRIC_LABELS[point.metric as RepoMetric]}
+                  {repoLabel(point.repoId)} · {METRIC_LABELS[point.metric]}
                 </span>
               </li>
             ))}
@@ -84,9 +78,11 @@ export function ViewCard({ view, dashboardId, repos }: ViewCardProps) {
       <ViewDialog
         mode="edit"
         viewId={view.id}
+        initialType={type}
         initialConfig={config}
         dashboardId={dashboardId}
         repos={repos}
+        history={history}
         open={editOpen}
         onOpenChange={setEditOpen}
       />

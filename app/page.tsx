@@ -1,10 +1,10 @@
 import { NewDashboard } from "@/app/_components/new-dashboard";
 import { SignInButton } from "@/app/_components/sign-in-button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Visualization } from "@/components/visualizations";
 import { getDashboardsForUser } from "@/lib/queries";
 import { getSession } from "@/lib/session";
-import { type RepoMetric } from "@/lib/metrics";
-import { computeViewValue, formatViewValue, type ViewConfig } from "@/lib/views";
+import { buildViewData, type ViewConfig, type ViewData } from "@/lib/views";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -83,10 +83,12 @@ function DashboardSummaryCard({ dashboard }: { dashboard: Dashboard }) {
           <div className="flex flex-1 flex-col justify-center py-2">
             {highlight ? (
               <>
-                <p className="text-3xl font-bold tabular-nums">
-                  {highlight.value}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
+                <Visualization
+                  type={highlight.type}
+                  config={highlight.config}
+                  data={highlight.data}
+                />
+                <p className="mt-1 truncate text-xs text-muted-foreground">
                   {highlight.title}
                 </p>
               </>
@@ -107,29 +109,36 @@ function DashboardSummaryCard({ dashboard }: { dashboard: Dashboard }) {
   );
 }
 
-function highlightFor(
-  dashboard: Dashboard,
-): { title: string; value: string } | null {
+function highlightFor(dashboard: Dashboard): {
+  type: string;
+  title: string;
+  config: ViewConfig;
+  data: ViewData;
+} | null {
   if (!dashboard.highlightViewId) return null;
   const view = dashboard.views.find((v) => v.id === dashboard.highlightViewId);
   if (!view) return null;
 
   const config = view.config as unknown as ViewConfig;
-  const metrics = new Map(
-    dashboard.repos.map(({ repo }) => [
-      repo.id,
-      { stars: repo.stars, openIssues: repo.openIssues },
-    ]),
+  const repos = dashboard.repos.map(({ repo }) => ({
+    id: repo.id,
+    stars: repo.stars,
+    openIssues: repo.openIssues,
+  }));
+  const history = dashboard.repos.flatMap(({ repo }) =>
+    repo.snapshots.map((snapshot) => ({
+      repoId: repo.id,
+      metric: snapshot.metric,
+      date: snapshot.date.getTime(),
+      value: snapshot.value,
+    })),
   );
-  const resolve = (repoId: string, metric: RepoMetric): number | null => {
-    const entry = metrics.get(repoId);
-    if (!entry) return null;
-    return metric === "stars" ? entry.stars : entry.openIssues;
-  };
 
   return {
+    type: view.type,
     title: config.title || "Untitled view",
-    value: formatViewValue(computeViewValue(config, resolve), config),
+    config,
+    data: buildViewData(config, repos, history),
   };
 }
 

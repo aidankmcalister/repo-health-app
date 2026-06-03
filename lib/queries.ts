@@ -1,6 +1,13 @@
 import prisma from "@/app/lib/prisma";
 
-/** A user's dashboards with their linked repos and each repo's cached fields. */
+// How much snapshot history to load for charts.
+const HISTORY_WINDOW_DAYS = 120;
+
+function historyCutoff(): Date {
+  return new Date(Date.now() - HISTORY_WINDOW_DAYS * 86_400_000);
+}
+
+/** A user's dashboards with their linked repos, cached fields, and recent history. */
 export async function getDashboardsForUser(userId: string) {
   return prisma.dashboard.findMany({
     where: { userId },
@@ -8,14 +15,23 @@ export async function getDashboardsForUser(userId: string) {
     include: {
       repos: {
         orderBy: { id: "asc" },
-        include: { repo: true },
+        include: {
+          repo: {
+            include: {
+              snapshots: {
+                where: { date: { gte: historyCutoff() } },
+                orderBy: { date: "asc" },
+              },
+            },
+          },
+        },
       },
       views: { orderBy: { order: "asc" } },
     },
   });
 }
 
-/** One dashboard (scoped to its owner) with its repos and recent snapshots. */
+/** One dashboard (scoped to its owner) with its repos and snapshot history. */
 export async function getDashboardForUser(dashboardId: string, userId: string) {
   return prisma.dashboard.findFirst({
     where: { id: dashboardId, userId },
@@ -25,7 +41,10 @@ export async function getDashboardForUser(dashboardId: string, userId: string) {
         include: {
           repo: {
             include: {
-              snapshots: { orderBy: { date: "desc" }, take: 10 },
+              snapshots: {
+                where: { date: { gte: historyCutoff() } },
+                orderBy: { date: "asc" },
+              },
             },
           },
         },

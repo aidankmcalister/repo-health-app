@@ -1,7 +1,24 @@
 import type { RepoMetric } from "@/lib/metrics";
 
-// The only visualization for now. More can be added to the picker later.
+// Visualization types. Add a new entry here + a renderer in
+// components/visualizations to support a new chart.
 export const VIEW_TYPE_NUMBER = "number";
+export const VIEW_TYPE_LINE = "line";
+export const VIEW_TYPE_AREA = "area";
+export const VIEW_TYPE_BAR = "bar";
+
+export const VIEW_TYPES = [
+  { type: VIEW_TYPE_NUMBER, label: "Big Number" },
+  { type: VIEW_TYPE_LINE, label: "Line Chart" },
+  { type: VIEW_TYPE_AREA, label: "Area Chart" },
+  { type: VIEW_TYPE_BAR, label: "Bar Chart" },
+] as const;
+
+const VALID_VIEW_TYPES = new Set<string>(VIEW_TYPES.map((entry) => entry.type));
+
+export function isValidViewType(type: string): boolean {
+  return VALID_VIEW_TYPES.has(type);
+}
 
 // Data-point labels A–Z (max 26 per view).
 export const ALIASES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -35,6 +52,67 @@ export type MetricResolver = (
   metric: RepoMetric,
 ) => number | null;
 
+// One historical snapshot value, used to build chart series.
+export type HistoryPoint = {
+  repoId: string;
+  metric: string;
+  date: number;
+  value: number;
+};
+
+// A repo's current cached metric values.
+export type ViewRepoValues = {
+  id: string;
+  stars: number | null;
+  openIssues: number | null;
+};
+
+// Everything a visualization renderer needs: latest value, a time series, and a
+// per-data-point breakdown of current values (for categorical charts).
+export type ViewData = {
+  value: number | null;
+  series: { date: number; value: number }[];
+  breakdown: { alias: string; value: number }[];
+};
+
+/** Builds the data a view's visualization needs from current values + history. */
+export function buildViewData(
+  config: ViewConfig,
+  repos: ViewRepoValues[],
+  history: HistoryPoint[],
+): ViewData {
+  // Latest snapshot value per (repo, metric) — covers every metric.
+  const latest = new Map<string, { date: number; value: number }>();
+  for (const point of history) {
+    const key = `${point.repoId}|${point.metric}`;
+    const current = latest.get(key);
+    if (!current || point.date > current.date) {
+      latest.set(key, { date: point.date, value: point.value });
+    }
+  }
+
+  const resolve: MetricResolver = (repoId, metric) => {
+    const snapshot = latest.get(`${repoId}|${metric}`);
+    if (snapshot) return snapshot.value;
+    // Fall back to the repo's cached fields (e.g. on the home page, no history).
+    const repo = repos.find((r) => r.id === repoId);
+    if (!repo) return null;
+    if (metric === "stars") return repo.stars;
+    if (metric === "open_issues") return repo.openIssues;
+    return null;
+  };
+
+  const breakdown = config.datapoints
+    .map((point) => ({ alias: point.alias, value: resolve(point.repoId, point.metric) }))
+    .filter((entry): entry is { alias: string; value: number } => entry.value !== null);
+
+  return {
+    value: computeViewValue(config, resolve),
+    series: computeViewSeries(config, history),
+    breakdown,
+  };
+}
+
 /**
  * Computes a view's value: evaluates the formula over the datapoints, or falls
  * back to the first datapoint's value when there is no formula. Returns null if
@@ -57,6 +135,76 @@ export function computeViewValue(
 
   const first = config.datapoints[0];
   return first ? vars[first.alias] ?? null : null;
+}
+
+/**
+ * Builds a time series of the view's value by evaluating it at each snapshot
+ * date, forward-filling each data point's most recent value at-or-before that
+ * date (so repos that sync at different times still align).
+ */
+export function computeViewSeries(
+  config: ViewConfig,
+  history: HistoryPoint[],
+): { date: number; value: number }[] {
+  if (config.datapoints.length === 0) return [];
+
+  const byKey = new Map<string, { date: number; value: number }[]>();
+  for (const point of history) {
+    const key = `${point.repoId}|${point.metric}`;
+    const list = byKey.get(key);
+    if (list) list.push({ date: point.date, value: point.value });
+    else byKey.set(key, [{ date: point.date, value: point.value }]);
+  }
+  for (const list of byKey.values()) list.sort((a, b) => a.date - b.date);
+
+  const aliasKeys = config.datapoints.map((dp) => ({
+    alias: dp.alias,
+    key: `${dp.repoId}|${dp.metric}`,
+  }));
+  const relevant = new Set(aliasKeys.map((entry) => entry.key));
+  const dates = [
+    ...new Set(
+      history
+        .filter((point) => relevant.has(`${point.repoId}|${point.metric}`))
+        .map((point) => point.date),
+    ),
+  ].sort((a, b) => a - b);
+
+  const series: { date: number; value: number }[] = [];
+  for (const date of dates) {
+    const vars: Record<string, number> = {};
+    let complete = true;
+    for (const { alias, key } of aliasKeys) {
+      const value = latestAtOrBefore(byKey.get(key), date);
+      if (value === null) {
+        complete = false;
+        break;
+      }
+      vars[alias] = value;
+    }
+    if (!complete) continue;
+
+    const value = config.formula
+      ? evaluateFormula(config.formula, vars)
+      : vars[config.datapoints[0].alias] ?? null;
+    if (value !== null && Number.isFinite(value)) {
+      series.push({ date, value });
+    }
+  }
+  return series;
+}
+
+function latestAtOrBefore(
+  points: { date: number; value: number }[] | undefined,
+  date: number,
+): number | null {
+  if (!points || points.length === 0) return null;
+  let result: number | null = null;
+  for (const point of points) {
+    if (point.date <= date) result = point.value;
+    else break;
+  }
+  return result;
 }
 
 /** Formats a computed value with the view's prefix/postfix, or "—" if null. */

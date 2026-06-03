@@ -4,6 +4,7 @@ import { DashboardDialog } from "@/app/_components/dashboard-dialog";
 import { SyncNowButton } from "@/app/_components/sync-now-button";
 import { ViewDialog, type ViewRepo } from "@/app/_components/view-dialog";
 import { Button } from "@/components/ui/button";
+import type { HistoryPoint } from "@/lib/views";
 import { useState } from "react";
 
 type DashboardActionsProps = {
@@ -14,6 +15,7 @@ type DashboardActionsProps = {
   lastSyncedAt: number | null;
   views: { id: string; title: string }[];
   repos: ViewRepo[];
+  history: HistoryPoint[];
 };
 
 /** Header controls for a dashboard: sync, edit (name + repos), and add a view. */
@@ -25,6 +27,7 @@ export function DashboardActions({
   lastSyncedAt,
   views,
   repos,
+  history,
 }: DashboardActionsProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [newViewOpen, setNewViewOpen] = useState(false);
@@ -57,6 +60,7 @@ export function DashboardActions({
       <ViewDialog
         dashboardId={dashboardId}
         repos={repos}
+        history={history}
         open={newViewOpen}
         onOpenChange={setNewViewOpen}
       />
