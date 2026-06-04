@@ -38,6 +38,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 export type ViewRepo = {
   id: string;
@@ -179,6 +180,7 @@ export function ViewDialog(props: ViewDialogProps) {
       if (result.ok) {
         onOpenChange(false);
         router.refresh();
+        toast.success("View deleted");
       } else {
         setError(result.error ?? "Failed to delete view.");
       }
@@ -195,6 +197,14 @@ export function ViewDialog(props: ViewDialogProps) {
       if (result.ok) {
         onOpenChange(false);
         router.refresh();
+        toast.success(
+          <span>
+            {isEdit ? "Updated" : "Created"}{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+              {title || "Untitled view"}
+            </code>
+          </span>,
+        );
       } else {
         setError(result.error ?? "Something went wrong.");
       }

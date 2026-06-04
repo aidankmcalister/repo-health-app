@@ -30,6 +30,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 const NO_HIGHLIGHT = "none";
 
@@ -87,6 +88,7 @@ export function DashboardDialog(props: DashboardDialogProps) {
       if (result.ok) {
         onOpenChange(false);
         router.push("/");
+        toast.success("Dashboard deleted");
       } else {
         setError(result.error ?? "Failed to delete dashboard.");
       }
@@ -122,6 +124,7 @@ export function DashboardDialog(props: DashboardDialogProps) {
       }
 
       onOpenChange(false);
+      toast.success(mode === "edit" ? "Dashboard updated" : "Dashboard created");
       if (props.mode === "create" && result.dashboardId) {
         router.push(`/dashboard/${result.dashboardId}`);
       } else {

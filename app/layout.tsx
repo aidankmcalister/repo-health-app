@@ -1,16 +1,21 @@
 import { AppSidebar } from "@/app/_components/app-sidebar";
 import { Breadcrumbs } from "@/app/_components/breadcrumbs";
+import { CommandMenu, CommandMenuButton } from "@/app/_components/command-menu";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDashboardsForUser } from "@/lib/queries";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Geist_Mono, Roboto } from "next/font/google";
+import { JetBrains_Mono, Roboto } from "next/font/google";
 import "./globals.css";
 
 const roboto = Roboto({ subsets: ["latin"], variable: "--font-sans" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
 
 export const metadata: Metadata = {
   title: "Tendril",
@@ -25,7 +30,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("font-sans", roboto.variable, geistMono.variable)}
+      className={cn("dark font-sans", roboto.variable, jetbrainsMono.variable)}
     >
       <body className="antialiased">
         <TooltipProvider>
@@ -42,6 +47,7 @@ export default async function RootLayout({
             children
           )}
         </TooltipProvider>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );
@@ -76,9 +82,11 @@ async function AppShell({
           <Breadcrumbs
             dashboards={dashboards.map(({ id, name }) => ({ id, name }))}
           />
+          <CommandMenuButton />
         </header>
         {children}
       </SidebarInset>
+      <CommandMenu dashboards={dashboards.map(({ id, name }) => ({ id, name }))} />
     </SidebarProvider>
   );
 }

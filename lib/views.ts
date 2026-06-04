@@ -23,16 +23,18 @@ export function isValidViewType(type: string): boolean {
 // Data-point labels A–Z (max 26 per view).
 export const ALIASES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-// Vivid series colors (the chart-N theme tokens are grayscale).
+// Series colors from the Tendril/Linear data-label palette.
+// Default order matches the design's series order: orange → blue → purple →
+// green → teal, then the rest of the label palette.
 export const VIEW_COLORS = [
-  { value: "#2563eb", label: "Blue" },
-  { value: "#16a34a", label: "Green" },
-  { value: "#dc2626", label: "Red" },
-  { value: "#d97706", label: "Amber" },
-  { value: "#7c3aed", label: "Purple" },
-  { value: "#0891b2", label: "Cyan" },
-  { value: "#db2777", label: "Pink" },
-  { value: "#475569", label: "Slate" },
+  { value: "#f46a3c", label: "Orange" },
+  { value: "#4ea7fc", label: "Blue" },
+  { value: "#b59aff", label: "Purple" },
+  { value: "#4cb782", label: "Green" },
+  { value: "#1fb8a6", label: "Teal" },
+  { value: "#eb5757", label: "Red" },
+  { value: "#f2c94c", label: "Yellow" },
+  { value: "#fc7840", label: "Amber" },
 ] as const;
 
 export function datapointColor(dp: ViewDatapoint, index: number): string {

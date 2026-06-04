@@ -63,98 +63,80 @@
   --color-chart-background: var(----chart-background);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.555 0.163 48.998);
-  --primary-foreground: oklch(0.987 0.022 95.277);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.45rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.666 0.179 58.318);
-  --sidebar-primary-foreground: oklch(0.987 0.022 95.277);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --chart-background: oklch(1 0 0);
-  --chart-foreground: oklch(0.145 0.004 285);
-  --chart-foreground-muted: oklch(0.55 0.014 260);
+/* ============================================================
+   TENDRIL · Linear design system (dark only).
+   Maps the Linear duotone-orange/teal token set onto shadcn vars
+   per the design handoff. Same block for :root and .dark so the
+   theme holds whether or not dark: variants are active.
+   ============================================================ */
+:root,
+.dark {
+  color-scheme: dark;
+
+  --background: #010102; /* canvas */
+  --foreground: #f7f8f8; /* ink */
+  --card: #0f1011; /* surface-1 */
+  --card-foreground: #f7f8f8;
+  --popover: #18191a; /* surface-3 (menus) */
+  --popover-foreground: #f7f8f8;
+  --primary: #f46a3c; /* signature orange — action */
+  --primary-foreground: #ffffff;
+  --secondary: #141516; /* surface-2 */
+  --secondary-foreground: #f7f8f8;
+  --muted: #141516; /* surface-2 */
+  --muted-foreground: #8a8f98; /* ink-subtle */
+  --accent: #18191a; /* surface-3 (hover) */
+  --accent-foreground: #f7f8f8;
+  --destructive: #eb5757; /* label-red */
+  --destructive-foreground: #ffffff;
+  --border: #23252a; /* hairline */
+  --input: #23252a;
+  --ring: #db5a2e; /* primary-focus */
+  --radius: 0.5rem; /* 8px — buttons & inputs */
+
+  /* Sidebar chrome */
+  --sidebar: #010102;
+  --sidebar-foreground: #8a8f98;
+  --sidebar-primary: #f46a3c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #141516;
+  --sidebar-accent-foreground: #f7f8f8;
+  --sidebar-border: #23252a;
+  --sidebar-ring: #db5a2e;
+
+  /* Extra brand tokens — success, dev teal, and the data-label palette */
+  --success: #27a644;
+  --teal: #1fb8a6;
+  --label-red: #eb5757;
+  --label-orange: #fc7840;
+  --label-yellow: #f2c94c;
+  --label-green: #4cb782;
+  --label-blue: #4ea7fc;
+  --label-purple: #b59aff;
+
+  /* Chart series — orange → blue → purple → green → teal (teal last) */
+  --chart-1: #f46a3c;
+  --chart-2: #4ea7fc;
+  --chart-3: #b59aff;
+  --chart-4: #4cb782;
+  --chart-5: #1fb8a6;
+
+  /* bklit chart surfaces — orange-led series on hairline grids */
+  --chart-background: #010102;
+  --chart-foreground: #8a8f98;
+  --chart-foreground-muted: #62666d;
   --chart-line-primary: var(--chart-1);
   --chart-line-secondary: var(--chart-2);
-  --chart-crosshair: oklch(0.4 0.1828 274.34);
-  --chart-grid: oklch(0.9 0 0);
-  --chart-tooltip-background: oklch(0.21 0.006 285 / 0.8);
-  --chart-tooltip-foreground: oklch(0.985 0 0);
-  --chart-tooltip-muted: oklch(0.65 0.01 260);
-  --chart-marker-background: oklch(0.97 0.005 260);
-  --chart-marker-border: oklch(0.85 0.01 260);
-  --chart-marker-foreground: oklch(0.3 0.01 260);
-  --chart-ring-background: oklch(0.9 0.005 260 / 0.25);
-  --chart-label: oklch(0.45 0.01 260);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.473 0.137 46.201);
-  --primary-foreground: oklch(0.987 0.022 95.277);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.769 0.188 70.08);
-  --sidebar-primary-foreground: oklch(0.279 0.077 45.635);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --chart-background: oklch(0.145 0 0);
-  --chart-foreground: oklch(0.45 0 0);
-  --chart-foreground-muted: oklch(0.65 0.01 260);
-  --chart-crosshair: oklch(0.45 0 0);
-  --chart-grid: oklch(0.25 0 0);
-  --chart-marker-background: oklch(0.25 0.01 260);
-  --chart-marker-border: oklch(0.4 0.01 260);
-  --chart-marker-foreground: oklch(0.9 0 0);
-  --chart-ring-background: oklch(0.35 0.01 260 / 0.25);
-  --chart-label: oklch(0.75 0.01 260);
+  --chart-crosshair: #34343a;
+  --chart-grid: #23252a;
+  --chart-tooltip-background: #18191a;
+  --chart-tooltip-foreground: #f7f8f8;
+  --chart-tooltip-muted: #8a8f98;
+  --chart-marker-background: #18191a;
+  --chart-marker-border: #34343a;
+  --chart-marker-foreground: #f7f8f8;
+  --chart-ring-background: color-mix(in srgb, #23252a 35%, transparent);
+  --chart-label: #62666d;
 }
 
 @layer base {

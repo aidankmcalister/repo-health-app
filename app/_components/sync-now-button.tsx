@@ -6,6 +6,7 @@ import { SYNC_COOLDOWN_MS } from "@/lib/cooldown";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 type SyncNowButtonProps = {
   dashboardId: string;
@@ -38,8 +39,11 @@ export function SyncNowButton({ dashboardId, lastSyncedAt }: SyncNowButtonProps)
       const result = await syncDashboardNow(dashboardId);
       if (result.ok) {
         router.refresh();
+        toast.success("Sync complete");
       } else {
-        setError(result.error ?? "Failed to sync.");
+        const message = result.error ?? "Failed to sync.";
+        setError(message);
+        toast.error(message);
       }
     });
   }
