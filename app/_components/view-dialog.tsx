@@ -254,7 +254,7 @@ export function ViewDialog(props: ViewDialogProps) {
         </div>
 
         {/* Body: rail · config · preview */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[132px_minmax(0,1fr)_300px]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[148px_minmax(0,1fr)_300px]">
           {/* Rail */}
           <div className="hidden flex-col gap-0.5 overflow-y-auto border-r border-[var(--hairline)] p-2.5 md:flex">
             <div className="px-2 pb-1.5 pt-1.5 text-[10.5px] tracking-[0.4px] text-[var(--ink-tertiary)]">
@@ -269,7 +269,7 @@ export function ViewDialog(props: ViewDialogProps) {
                   type="button"
                   onClick={() => changeType(entry.type)}
                   className={cn(
-                    "relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors",
+                    "relative flex h-8 items-center gap-2.5 whitespace-nowrap rounded-md px-2.5 text-[13px] transition-colors",
                     active
                       ? "bg-secondary text-foreground before:absolute before:-left-2.5 before:bottom-2 before:top-2 before:w-0.5 before:rounded-full before:bg-primary"
                       : "text-[var(--ink-subtle)] hover:bg-[var(--surface-1)] hover:text-foreground",
@@ -289,7 +289,7 @@ export function ViewDialog(props: ViewDialogProps) {
             <div className="px-2 pb-1.5 text-[10.5px] tracking-[0.4px] text-[var(--ink-tertiary)]">
               UPCOMING
             </div>
-            <div className="flex h-8 cursor-default items-center gap-2.5 rounded-md px-2.5 text-[13px] text-[var(--ink-tertiary)]">
+            <div className="flex h-8 cursor-default items-center gap-2.5 whitespace-nowrap rounded-md px-2.5 text-[13px] text-[var(--ink-tertiary)]">
               <Table className="size-[15px] shrink-0" />
               <span>Table</span>
               <span className="ml-auto rounded-full border border-[var(--hairline)] px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.4px] text-[var(--ink-tertiary)]">
