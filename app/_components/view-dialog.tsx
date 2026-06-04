@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Visualization } from "@/components/visualizations";
+import { ChangePill } from "@/components/visualizations/change-pill";
 import { ViewLegend } from "@/components/visualizations/view-legend";
 import { METRIC_LABELS, REPO_METRICS, type RepoMetric } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
@@ -1032,14 +1033,19 @@ function ViewPreview({
 
   return (
     <div className="flex flex-col gap-3 overflow-hidden rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] px-5 py-[18px]">
-      <div>
-        <p className="truncate text-sm font-medium leading-tight text-foreground">
-          {config.title || "Untitled view"}
-        </p>
-        {config.subtitle ? (
-          <p className="mt-1 truncate font-mono text-[11.5px] text-[var(--ink-subtle)]">
-            {config.subtitle}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium leading-tight text-foreground">
+            {config.title || "Untitled view"}
           </p>
+          {config.subtitle ? (
+            <p className="mt-1 truncate font-mono text-[11.5px] text-[var(--ink-subtle)]">
+              {config.subtitle}
+            </p>
+          ) : null}
+        </div>
+        {config.compare && data.delta !== null ? (
+          <ChangePill value={data.delta} />
         ) : null}
       </div>
 

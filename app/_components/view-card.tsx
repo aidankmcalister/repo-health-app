@@ -3,6 +3,7 @@
 import { ViewDialog } from "@/app/_components/view-dialog";
 import { Button } from "@/components/ui/button";
 import { Visualization } from "@/components/visualizations";
+import { ChangePill } from "@/components/visualizations/change-pill";
 import { ViewLegend } from "@/components/visualizations/view-legend";
 import { cn } from "@/lib/utils";
 import {
@@ -55,15 +56,20 @@ export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
             </p>
           ) : null}
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setEditOpen(true)}
-          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-        >
-          <Pencil className="size-4" />
-          <span className="sr-only">Edit view</span>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          {config.compare && data.delta !== null ? (
+            <ChangePill value={data.delta} />
+          ) : null}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setEditOpen(true)}
+            className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            <Pencil className="size-4" />
+            <span className="sr-only">Edit view</span>
+          </Button>
+        </div>
       </div>
 
       <Visualization type={type} config={config} data={data} />
