@@ -20,8 +20,28 @@ export function isValidViewType(type: string): boolean {
   return VALID_VIEW_TYPES.has(type);
 }
 
-// Data-point labels A–Z (max 26 per view).
+// Data-point labels A–Z (storage allows 26; the builder caps at MAX_DATAPOINTS).
 export const ALIASES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+// The view builder limits a view to this many data points (per the design).
+export const MAX_DATAPOINTS = 5;
+
+// How a Big Number rolls its windowed series up into one value.
+export const AGGREGATIONS = [
+  { value: "latest", label: "Latest" },
+  { value: "total", label: "Total" },
+  { value: "average", label: "Average" },
+  { value: "maximum", label: "Maximum" },
+  { value: "minimum", label: "Minimum" },
+] as const;
+
+export type Aggregation = (typeof AGGREGATIONS)[number]["value"];
+
+export function aggregationLabel(aggregation: Aggregation | undefined): string {
+  return (
+    AGGREGATIONS.find((entry) => entry.value === aggregation)?.label ?? "Latest"
+  );
+}
 
 // Series colors from the Tendril/Linear data-label palette.
 // Default order matches the design's series order: orange → blue → purple →
@@ -69,20 +89,59 @@ export type ViewConfig = {
   yAxis?: YAxisConfig;
   // Per-chart-type options (all optional for back-compat with older views).
   range?: number | null; // history window in days; null/undefined = all
+  rangeMode?: "preset" | "since"; // preset window vs. a custom start date
+  since?: string | null; // ISO date (yyyy-mm-dd) when rangeMode === "since"
   curve?: "smooth" | "linear"; // line + area
   markers?: boolean; // line
   areaFill?: "gradient" | "line"; // area
   barGrouping?: "grouped" | "stacked"; // bar
+  valueLabels?: boolean; // bar
+  aggregation?: Aggregation; // big number — how the window rolls up
+  sparkline?: boolean; // big number — show the trend behind the value
+  compare?: boolean; // big number — show change vs. the previous period
 };
 
-/** Trims history to the last `range` days (null/undefined = keep everything). */
+const DAY_MS = 86_400_000;
+
+/** The window start timestamp for a view's range, or null for "all time". */
+function windowCutoff(config: ViewConfig): number | null {
+  if (config.rangeMode === "since" && config.since) {
+    const parsed = Date.parse(config.since);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  if (config.range && config.range > 0) return Date.now() - config.range * DAY_MS;
+  return null;
+}
+
+/** Trims history to the view's date-range window (null cutoff = keep all). */
 function windowHistory(
   history: HistoryPoint[],
-  range: number | null | undefined,
+  cutoff: number | null,
 ): HistoryPoint[] {
-  if (!range || range <= 0) return history;
-  const cutoff = Date.now() - range * 86_400_000;
+  if (cutoff === null) return history;
   return history.filter((point) => point.date >= cutoff);
+}
+
+/** Rolls a series up into a single value using the given aggregation. */
+function aggregateSeries(
+  series: { date: number; value: number }[],
+  aggregation: Aggregation,
+): number | null {
+  if (series.length === 0) return null;
+  const values = series.map((point) => point.value);
+  switch (aggregation) {
+    case "total":
+      return values.reduce((sum, value) => sum + value, 0);
+    case "average":
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    case "maximum":
+      return Math.max(...values);
+    case "minimum":
+      return Math.min(...values);
+    case "latest":
+    default:
+      return values[values.length - 1];
+  }
 }
 
 /** Formats a y-axis tick using the view's decimals/prefix/postfix (auto if unset). */
@@ -152,6 +211,9 @@ export type ViewData = {
   // the human tooltip label; `color` is the series stroke/fill.
   chartRows: Record<string, number>[];
   chartLines: { key: string; label: string; color: string }[];
+  // Percent change of the Big Number vs. the previous equal-length period
+  // (null unless `compare` is on and a previous period exists).
+  delta: number | null;
   // True when every data point's metric had its history skipped (capped) at
   // backfill — so charts show "history unavailable" instead of a flat line.
   unavailable: boolean;
@@ -188,9 +250,22 @@ export function buildViewData(
     .map((point) => ({ alias: point.alias, value: resolve(point.repoId, point.metric) }))
     .filter((entry): entry is { alias: string; value: number } => entry.value !== null);
 
-  // Charts respect the date-range window; the Big Number's latest value does not.
-  const windowed = windowHistory(history, config.range);
+  // Everything respects the date-range window. The Big Number rolls the
+  // windowed series up with its aggregation; charts plot it over time.
+  const cutoff = windowCutoff(config);
+  const windowed = windowHistory(history, cutoff);
+  const windowedSeries = computeViewSeries(config, windowed);
   const chart = computeChart(config, repos, windowed);
+
+  const aggregation = config.aggregation ?? "latest";
+  const value =
+    windowedSeries.length > 0
+      ? aggregateSeries(windowedSeries, aggregation)
+      : computeViewValue(config, resolve); // fall back to cached/latest
+
+  const delta = config.compare
+    ? computeDelta(config, history, cutoff, aggregation, value)
+    : null;
 
   const unavailable =
     config.datapoints.length > 0 &&
@@ -200,13 +275,35 @@ export function buildViewData(
     });
 
   return {
-    value: computeViewValue(config, resolve),
-    series: computeViewSeries(config, windowed),
+    value,
+    series: windowedSeries,
     breakdown,
     chartRows: chart.rows,
     chartLines: chart.lines,
+    delta,
     unavailable,
   };
+}
+
+/** Percent change of the aggregated value vs. the previous equal-length period. */
+function computeDelta(
+  config: ViewConfig,
+  history: HistoryPoint[],
+  cutoff: number | null,
+  aggregation: Aggregation,
+  current: number | null,
+): number | null {
+  if (cutoff === null || current === null) return null;
+  const length = Date.now() - cutoff;
+  const previous = history.filter(
+    (point) => point.date >= cutoff - length && point.date < cutoff,
+  );
+  const previousValue = aggregateSeries(
+    computeViewSeries(config, previous),
+    aggregation,
+  );
+  if (previousValue === null || previousValue === 0) return null;
+  return ((current - previousValue) / previousValue) * 100;
 }
 
 /**

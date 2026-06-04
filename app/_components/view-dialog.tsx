@@ -26,26 +26,31 @@ import { Visualization } from "@/components/visualizations";
 import { METRIC_LABELS, REPO_METRICS, type RepoMetric } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import {
+  AGGREGATIONS,
   ALIASES,
   buildViewData,
   datapointColor,
   datapointDisplayLabel,
   defaultShowLegend,
+  MAX_DATAPOINTS,
   VIEW_COLORS,
   VIEW_TYPE_AREA,
   VIEW_TYPE_BAR,
   VIEW_TYPE_LINE,
   VIEW_TYPE_NUMBER,
   VIEW_TYPES,
+  type Aggregation,
   type HistoryPoint,
   type ViewConfig,
   type ViewDatapoint,
 } from "@/lib/views";
 import {
+  ArrowRight,
   ChartArea,
   ChartColumn,
   ChartLine,
   Hash,
+  Plus,
   Table,
   Trash2,
 } from "lucide-react";
@@ -151,12 +156,33 @@ export function ViewDialog(props: ViewDialogProps) {
   const [barGrouping, setBarGrouping] = useState<"grouped" | "stacked">(
     isEdit ? (props.initialConfig.barGrouping ?? "grouped") : "grouped",
   );
+  const [valueLabels, setValueLabels] = useState(
+    isEdit ? (props.initialConfig.valueLabels ?? false) : false,
+  );
+  const [rangeMode, setRangeMode] = useState<"preset" | "since">(
+    isEdit ? (props.initialConfig.rangeMode ?? "preset") : "preset",
+  );
+  const [since, setSince] = useState<string | null>(
+    isEdit ? (props.initialConfig.since ?? null) : null,
+  );
+  const [aggregation, setAggregation] = useState<Aggregation>(
+    isEdit ? (props.initialConfig.aggregation ?? "latest") : "latest",
+  );
+  const [sparkline, setSparkline] = useState(
+    isEdit ? (props.initialConfig.sparkline ?? false) : false,
+  );
+  const [compare, setCompare] = useState(
+    isEdit ? (props.initialConfig.compare ?? false) : false,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDelete] = useTransition();
 
   const canAddDatapoint =
-    repos.length > 0 && datapoints.length < ALIASES.length;
+    repos.length > 0 && datapoints.length < MAX_DATAPOINTS;
+  const activeCount = datapoints.filter((point) =>
+    repos.some((repo) => repo.id === point.repoId),
+  ).length;
   const isNumber = type === VIEW_TYPE_NUMBER;
   const typeLabel =
     VIEW_TYPES.find((entry) => entry.type === type)?.label ?? "view";
@@ -175,11 +201,17 @@ export function ViewDialog(props: ViewDialogProps) {
       prefix: yPrefix.trim() ? yPrefix : null,
       postfix: yPostfix.trim() ? yPostfix : null,
     },
-    range: isNumber ? null : range,
+    range,
+    rangeMode,
+    since: rangeMode === "since" ? since : null,
     curve,
     markers,
     areaFill,
     barGrouping,
+    valueLabels,
+    aggregation,
+    sparkline,
+    compare,
   };
 
   function changeType(next: string) {
@@ -365,29 +397,73 @@ export function ViewDialog(props: ViewDialogProps) {
             {/* Chart options — distinct per chart type, per the design */}
             <Section title="Chart options">
               {isNumber ? (
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabel>
-                    Format{" "}
-                    <span className="text-[var(--ink-tertiary)]">· optional</span>
-                  </FieldLabel>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <Input
-                      value={prefix}
-                      onChange={(event) => setPrefix(event.target.value)}
-                      placeholder="Prefix · $"
-                    />
-                    <Input
-                      value={postfix}
-                      onChange={(event) => setPostfix(event.target.value)}
-                      placeholder="Postfix · %"
-                    />
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel>Aggregation</FieldLabel>
+                    <Select
+                      value={aggregation}
+                      onValueChange={(value) =>
+                        setAggregation(value as Aggregation)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGGREGATIONS.map((entry) => (
+                          <SelectItem key={entry.value} value={entry.value}>
+                            {entry.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel>
+                      Format{" "}
+                      <span className="text-[var(--ink-tertiary)]">
+                        · optional
+                      </span>
+                    </FieldLabel>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <Input
+                        value={prefix}
+                        onChange={(event) => setPrefix(event.target.value)}
+                        placeholder="Prefix · $"
+                      />
+                      <Input
+                        value={postfix}
+                        onChange={(event) => setPostfix(event.target.value)}
+                        placeholder="Postfix · %"
+                      />
+                    </div>
+                  </div>
+                  <ToggleRow
+                    label="Trend sparkline"
+                    checked={sparkline}
+                    onChange={setSparkline}
+                  />
+                  <ToggleRow
+                    label="Compare to previous period"
+                    checked={compare}
+                    onChange={setCompare}
+                  />
+                </>
               ) : (
                 <>
                   <div className="flex flex-col gap-1.5">
                     <FieldLabel>Date range</FieldLabel>
-                    <DateRange value={range} onChange={setRange} />
+                    <DateRange
+                      range={range}
+                      mode={rangeMode}
+                      since={since}
+                      onChange={(patch) => {
+                        if (patch.rangeMode !== undefined)
+                          setRangeMode(patch.rangeMode);
+                        if (patch.range !== undefined) setRange(patch.range);
+                        if (patch.since !== undefined) setSince(patch.since);
+                      }}
+                    />
                   </div>
 
                   {type === VIEW_TYPE_LINE ? (
@@ -441,19 +517,26 @@ export function ViewDialog(props: ViewDialogProps) {
                   ) : null}
 
                   {type === VIEW_TYPE_BAR ? (
-                    <div className="flex flex-col gap-1.5">
-                      <FieldLabel>Bars</FieldLabel>
-                      <Segmented
-                        value={barGrouping}
-                        onChange={(v) =>
-                          setBarGrouping(v as "grouped" | "stacked")
-                        }
-                        options={[
-                          { value: "grouped", label: "Grouped" },
-                          { value: "stacked", label: "Stacked" },
-                        ]}
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <FieldLabel>Bars</FieldLabel>
+                        <Segmented
+                          value={barGrouping}
+                          onChange={(v) =>
+                            setBarGrouping(v as "grouped" | "stacked")
+                          }
+                          options={[
+                            { value: "grouped", label: "Grouped" },
+                            { value: "stacked", label: "Stacked" },
+                          ]}
+                        />
+                      </div>
+                      <ToggleRow
+                        label="Value labels"
+                        checked={valueLabels}
+                        onChange={setValueLabels}
                       />
-                    </div>
+                    </>
                   ) : null}
 
                   <div className="flex flex-col gap-1.5">
@@ -524,7 +607,7 @@ export function ViewDialog(props: ViewDialogProps) {
             {/* Data points */}
             <Section
               title="Data points"
-              count={`${datapoints.length}/${ALIASES.length}`}
+              count={`${datapoints.length}/${MAX_DATAPOINTS}`}
               action={
                 <Button
                   type="button"
@@ -533,11 +616,25 @@ export function ViewDialog(props: ViewDialogProps) {
                   onClick={addDatapoint}
                   disabled={!canAddDatapoint}
                 >
-                  <Hash className="size-3" />
+                  <Plus className="size-3" />
                   Add
                 </Button>
               }
             >
+              <p className="-mt-1 text-[11.5px] leading-relaxed text-[var(--ink-tertiary)]">
+                {isNumber ? (
+                  <>
+                    Each point&apos;s metric is rolled up across the window — set
+                    how with{" "}
+                    <b className="font-medium text-[var(--ink-muted)]">
+                      Aggregation
+                    </b>
+                    .
+                  </>
+                ) : (
+                  "Each point plots one repo's metric over the selected range."
+                )}
+              </p>
               {repos.length === 0 ? (
                 <p className="text-[12.5px] text-[var(--ink-tertiary)]">
                   Add repos to this dashboard first.
@@ -628,8 +725,12 @@ export function ViewDialog(props: ViewDialogProps) {
               </span>
               <span className="text-right font-mono text-[10.5px] text-[var(--ink-subtle)]">
                 {typeLabel}
-                {!isNumber ? ` · ${range ? `${range}d` : "all"}` : ""} ·{" "}
-                {datapoints.length}{" "}
+                {!isNumber
+                  ? rangeMode === "since"
+                    ? " · custom"
+                    : ` · ${range ? `${range}d` : "all"}`
+                  : ""}{" "}
+                · {datapoints.length}{" "}
                 {datapoints.length === 1 ? "point" : "points"}
               </span>
             </div>
@@ -649,7 +750,8 @@ export function ViewDialog(props: ViewDialogProps) {
         {/* Footer */}
         <div className="flex shrink-0 items-center justify-between border-t border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3">
           <span className="font-mono text-[11px] text-[var(--ink-tertiary)]">
-            {datapoints.length} {datapoints.length === 1 ? "point" : "points"}
+            {activeCount} of {datapoints.length}{" "}
+            {datapoints.length === 1 ? "point" : "points"} active
           </span>
           <div className="flex items-center gap-2">
             {isEdit ? (
@@ -764,36 +866,93 @@ function Segmented({
   );
 }
 
+type DateRangePatch = {
+  range?: number | null;
+  rangeMode?: "preset" | "since";
+  since?: string | null;
+};
+
 function DateRange({
-  value,
+  range,
+  mode,
+  since,
   onChange,
 }: {
-  value: number | null;
-  onChange: (value: number | null) => void;
+  range: number | null;
+  mode: "preset" | "since";
+  since: string | null;
+  onChange: (patch: DateRangePatch) => void;
 }) {
-  const presets: { v: number | null; l: string }[] = [
+  const isSince = mode === "since";
+  const today = new Date().toISOString().slice(0, 10);
+  const presetFrom = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - ((range || 30) - 1));
+    return date.toISOString().slice(0, 10);
+  };
+  const shownFrom = isSince ? (since ?? "") : presetFrom();
+  const presets = [
     { v: 7, l: "7D" },
     { v: 30, l: "30D" },
     { v: 90, l: "90D" },
-    { v: null, l: "All" },
   ];
+
   return (
-    <div className="inline-flex gap-0.5 self-start border-b border-[var(--hairline)]">
-      {presets.map((preset) => (
+    <div className="flex flex-col gap-3">
+      <div className="inline-flex gap-0.5 self-start border-b border-[var(--hairline)]">
+        {presets.map((preset) => (
+          <button
+            key={preset.l}
+            type="button"
+            onClick={() => onChange({ rangeMode: "preset", range: preset.v })}
+            className={cn(
+              "-mb-px h-8 border-b-2 px-3 text-[13.5px] tabular-nums transition-colors",
+              !isSince && range === preset.v
+                ? "border-primary font-medium text-foreground"
+                : "border-transparent text-[var(--ink-subtle)] hover:text-foreground",
+            )}
+          >
+            {preset.l}
+          </button>
+        ))}
         <button
-          key={preset.l}
           type="button"
-          onClick={() => onChange(preset.v)}
+          onClick={() =>
+            onChange({ rangeMode: "since", since: since ?? presetFrom() })
+          }
           className={cn(
-            "-mb-px h-8 border-b-2 px-3 text-[13.5px] tabular-nums transition-colors",
-            value === preset.v
+            "-mb-px h-8 border-b-2 px-3 text-[13.5px] transition-colors",
+            isSince
               ? "border-primary font-medium text-foreground"
               : "border-transparent text-[var(--ink-subtle)] hover:text-foreground",
           )}
         >
-          {preset.l}
+          Custom
         </button>
-      ))}
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        <input
+          type="date"
+          value={shownFrom}
+          max={today}
+          disabled={!isSince}
+          onChange={(event) =>
+            onChange({ rangeMode: "since", since: event.target.value })
+          }
+          title={
+            isSince
+              ? "Pick a start date"
+              : "Preset window start — switch to Custom to edit"
+          }
+          className="h-9 flex-1 rounded-md border border-border bg-[var(--surface-1)] px-3 font-mono text-[12.5px] text-foreground outline-none transition-colors [color-scheme:dark] focus-visible:border-[var(--hairline-strong)] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:bg-[var(--surface-2)] disabled:text-[var(--ink-subtle)]"
+        />
+        <ArrowRight className="size-3.5 shrink-0 text-[var(--ink-tertiary)]" />
+        <span className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-border bg-[var(--surface-2)] px-3 font-mono text-[12.5px] text-[var(--ink-muted)]">
+          <span className="size-1.5 rounded-full bg-[var(--success)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--success)_22%,transparent)]" />
+          now
+        </span>
+      </div>
     </div>
   );
 }
