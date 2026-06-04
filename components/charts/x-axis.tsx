@@ -100,6 +100,9 @@ const XAxisInner = memo(function XAxisInner({
 
   // Generate tick labels: evenly spaced along the domain, or one per data row
   const labelsToShow = useMemo(() => {
+    // Guard against transient renders (type switch / remount) where the chart
+    // context hasn't published a usable scale yet.
+    if (typeof xScale !== "function") return [];
     if (tickMode === "data") {
       return data.map((d, i) => ({
         date: xAccessor(d),

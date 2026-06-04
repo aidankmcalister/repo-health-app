@@ -27,7 +27,12 @@ export function NumberVisualization({ config, data }: VisualizationProps) {
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col justify-center py-4">
+      <div
+        className={cn(
+          "flex flex-1 flex-col justify-center py-4",
+          showSparkline ? "items-start text-left" : "items-center text-center",
+        )}
+      >
         <p className="text-5xl font-semibold tracking-[-1.6px] tabular-nums text-foreground">
           {formatViewValue(data.value, config)}
         </p>
