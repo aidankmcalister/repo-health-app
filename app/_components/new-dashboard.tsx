@@ -20,9 +20,11 @@ export function NewDashboard({ variant }: { variant: "button" | "card" }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[var(--hairline-strong)] bg-[var(--surface-1)] text-[var(--ink-subtle)] transition-colors hover:border-primary/50 hover:text-foreground"
         >
-          <Plus className="size-5" />
+          <span className="flex size-11 items-center justify-center rounded-md border border-[var(--hairline)] bg-[var(--surface-2)] text-[var(--ink-subtle)]">
+            <Plus className="size-5" />
+          </span>
           <span className="text-sm">New dashboard</span>
         </button>
       )}

@@ -6,12 +6,14 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -22,6 +24,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Visualization } from "@/components/visualizations";
 import { METRIC_LABELS, REPO_METRICS, type RepoMetric } from "@/lib/metrics";
+import { cn } from "@/lib/utils";
 import {
   ALIASES,
   buildViewData,
@@ -35,8 +38,16 @@ import {
   type ViewConfig,
   type ViewDatapoint,
 } from "@/lib/views";
-import { Trash2 } from "lucide-react";
+import {
+  ChartArea,
+  ChartColumn,
+  ChartLine,
+  Hash,
+  Table,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -46,6 +57,13 @@ export type ViewRepo = {
   name: string;
   stars: number | null;
   openIssues: number | null;
+};
+
+const TYPE_ICONS: Record<string, LucideIcon> = {
+  number: Hash,
+  line: ChartLine,
+  area: ChartArea,
+  bar: ChartColumn,
 };
 
 type ViewDialogProps = {
@@ -121,6 +139,9 @@ export function ViewDialog(props: ViewDialogProps) {
 
   const canAddDatapoint =
     repos.length > 0 && datapoints.length < ALIASES.length;
+  const isNumber = type === VIEW_TYPE_NUMBER;
+  const typeLabel =
+    VIEW_TYPES.find((entry) => entry.type === type)?.label ?? "view";
 
   const config: ViewConfig = {
     title,
@@ -187,8 +208,7 @@ export function ViewDialog(props: ViewDialogProps) {
     });
   }
 
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function handleSubmit() {
     setError(null);
     startTransition(async () => {
       const result = isEdit
@@ -213,126 +233,237 @@ export function ViewDialog(props: ViewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-7xl">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? "Edit view" : "New view"}</DialogTitle>
-            <DialogDescription>
-              Build a metric from this dashboard&apos;s repos.
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent
+        showCloseButton
+        className="flex h-[min(640px,88vh)] w-[min(960px,94vw)] max-w-none flex-col gap-0 overflow-hidden border-[var(--hairline-strong)] bg-[var(--canvas)] p-0 sm:max-w-none"
+      >
+        {/* Header */}
+        <div className="flex shrink-0 items-center gap-2.5 border-b border-[var(--hairline)] px-4 py-3">
+          <span className="text-primary">
+            {(() => {
+              const Icon = TYPE_ICONS[type] ?? Hash;
+              return <Icon className="size-[15px]" />;
+            })()}
+          </span>
+          <DialogTitle className="text-[15px] font-semibold tracking-[-0.2px] text-foreground">
+            {isEdit ? "Edit" : "New"} {typeLabel.toLowerCase()} view
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Build a metric from this dashboard&apos;s repos.
+          </DialogDescription>
+        </div>
 
-          <div className="grid items-start w-fit gap-6 md:grid-cols-[1fr_340px]">
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="view-title">Title</Label>
+        {/* Body: rail · config · preview */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[132px_minmax(0,1fr)_300px]">
+          {/* Rail */}
+          <div className="hidden flex-col gap-0.5 overflow-y-auto border-r border-[var(--hairline)] p-2.5 md:flex">
+            <div className="px-2 pb-1.5 pt-1.5 text-[10.5px] tracking-[0.4px] text-[var(--ink-tertiary)]">
+              CHART TYPE
+            </div>
+            {VIEW_TYPES.map((entry) => {
+              const Icon = TYPE_ICONS[entry.type] ?? Hash;
+              const active = entry.type === type;
+              return (
+                <button
+                  key={entry.type}
+                  type="button"
+                  onClick={() => changeType(entry.type)}
+                  className={cn(
+                    "relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors",
+                    active
+                      ? "bg-secondary text-foreground before:absolute before:-left-2.5 before:bottom-2 before:top-2 before:w-0.5 before:rounded-full before:bg-primary"
+                      : "text-[var(--ink-subtle)] hover:bg-[var(--surface-1)] hover:text-foreground",
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "size-[15px] shrink-0",
+                      active ? "text-primary" : "text-[var(--ink-tertiary)]",
+                    )}
+                  />
+                  <span>{entry.label}</span>
+                </button>
+              );
+            })}
+            <div className="my-2 h-px bg-[var(--hairline)]" />
+            <div className="px-2 pb-1.5 text-[10.5px] tracking-[0.4px] text-[var(--ink-tertiary)]">
+              UPCOMING
+            </div>
+            <div className="flex h-8 cursor-default items-center gap-2.5 rounded-md px-2.5 text-[13px] text-[var(--ink-tertiary)]">
+              <Table className="size-[15px] shrink-0" />
+              <span>Table</span>
+              <span className="ml-auto rounded-full border border-[var(--hairline)] px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.4px] text-[var(--ink-tertiary)]">
+                soon
+              </span>
+            </div>
+          </div>
+
+          {/* Config */}
+          <div className="flex min-w-0 flex-col gap-[18px] overflow-y-auto p-[18px]">
+            {/* Type (mobile only — rail is hidden) */}
+            <div className="flex flex-col gap-1.5 md:hidden">
+              <FieldLabel>Chart type</FieldLabel>
+              <Select value={type} onValueChange={changeType}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VIEW_TYPES.map((entry) => (
+                    <SelectItem key={entry.type} value={entry.type}>
+                      {entry.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <FieldLabel>Name</FieldLabel>
                 <Input
-                  id="view-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Untitled view"
                   autoFocus
                 />
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="view-subtitle">Subtitle (optional)</Label>
+              <div className="flex flex-col gap-1.5">
+                <FieldLabel>
+                  Subtitle <span className="text-[var(--ink-tertiary)]">· optional</span>
+                </FieldLabel>
                 <Input
-                  id="view-subtitle"
                   value={subtitle}
                   onChange={(event) => setSubtitle(event.target.value)}
-                  placeholder="Add a subtitle"
+                  placeholder="Shown under the title"
                 />
               </div>
+            </div>
 
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="grid gap-2">
-                  <Label>Visualization</Label>
-                  <Select value={type} onValueChange={changeType}>
-                    <SelectTrigger className="w-44">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VIEW_TYPES.map((entry) => (
-                        <SelectItem key={entry.type} value={entry.type}>
-                          {entry.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {/* Chart options */}
+            <Section title="Chart options">
+              {isNumber ? (
+                <div className="flex flex-col gap-1.5">
+                  <FieldLabel>
+                    Format{" "}
+                    <span className="text-[var(--ink-tertiary)]">· optional</span>
+                  </FieldLabel>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Input
+                      value={prefix}
+                      onChange={(event) => setPrefix(event.target.value)}
+                      placeholder="Prefix · $"
+                    />
+                    <Input
+                      value={postfix}
+                      onChange={(event) => setPostfix(event.target.value)}
+                      placeholder="Postfix · %"
+                    />
+                  </div>
                 </div>
-                {type === VIEW_TYPE_NUMBER ? (
-                  <>
-                    <div className="grid gap-2">
-                      <Label htmlFor="view-prefix">Prefix</Label>
-                      <Input
-                        id="view-prefix"
-                        value={prefix}
-                        onChange={(event) => setPrefix(event.target.value)}
-                        placeholder="$"
-                        className="w-24"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="view-postfix">Postfix</Label>
-                      <Input
-                        id="view-postfix"
-                        value={postfix}
-                        onChange={(event) => setPostfix(event.target.value)}
-                        placeholder="%"
-                        className="w-24"
-                      />
-                    </div>
-                  </>
-                ) : null}
-              </div>
-
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label>Data points</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addDatapoint}
-                    disabled={!canAddDatapoint}
-                  >
-                    Add data point
-                  </Button>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <FieldLabel>Y-axis labels</FieldLabel>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <Select value={yDecimals} onValueChange={setYDecimals}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto</SelectItem>
+                        <SelectItem value="0">0</SelectItem>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={yPrefix}
+                      onChange={(event) => setYPrefix(event.target.value)}
+                      placeholder="Prefix"
+                    />
+                    <Input
+                      value={yPostfix}
+                      onChange={(event) => setYPostfix(event.target.value)}
+                      placeholder="Postfix"
+                    />
+                  </div>
                 </div>
+              )}
 
-                {repos.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Add repos to this dashboard first.
+              <ToggleRow
+                label="Show legend"
+                checked={showLegend}
+                onChange={setShowLegend}
+              />
+              <ToggleRow
+                label="Show repo in labels"
+                checked={showRepoInLabels}
+                onChange={setShowRepoInLabels}
+              />
+              <ToggleRow
+                label="Use a formula"
+                checked={formulaEnabled}
+                onChange={setFormulaEnabled}
+              />
+              {formulaEnabled ? (
+                <div className="flex flex-col gap-1.5">
+                  <Input
+                    value={formula}
+                    onChange={(event) => setFormula(event.target.value)}
+                    placeholder="A / B * 100"
+                    className="font-mono"
+                  />
+                  <p className="text-[11.5px] leading-relaxed text-[var(--ink-tertiary)]">
+                    Reference data points by their letter, e.g.{" "}
+                    <code className="font-mono text-[var(--ink-muted)]">
+                      A / B * 100
+                    </code>
+                    .
                   </p>
-                ) : datapoints.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No data points yet.
-                  </p>
-                ) : (
-                  <ul className="flex flex-col gap-2">
-                    {datapoints.map((point, index) => (
-                      <li key={point.alias} className="flex items-center gap-2">
-                        <span className="w-6 text-center font-mono font-medium">
-                          {point.alias}
-                        </span>
-                        <Select
-                          value={point.repoId}
-                          onValueChange={(repoId) =>
-                            updateDatapoint(point.alias, { repoId })
-                          }
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {repos.map((repo) => (
-                              <SelectItem key={repo.id} value={repo.id}>
-                                {repo.owner}/{repo.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                </div>
+              ) : null}
+            </Section>
+
+            {/* Data points */}
+            <Section
+              title="Data points"
+              count={`${datapoints.length}/${ALIASES.length}`}
+              action={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={addDatapoint}
+                  disabled={!canAddDatapoint}
+                >
+                  <Hash className="size-3" />
+                  Add
+                </Button>
+              }
+            >
+              {repos.length === 0 ? (
+                <p className="text-[12.5px] text-[var(--ink-tertiary)]">
+                  Add repos to this dashboard first.
+                </p>
+              ) : datapoints.length === 0 ? (
+                <p className="text-[12.5px] text-[var(--ink-tertiary)]">
+                  No data points yet — add one to plot a metric.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {datapoints.map((point, index) => (
+                    <div
+                      key={point.alias}
+                      className="flex items-center gap-2 rounded-md border border-[var(--hairline)] bg-[var(--surface-1)] px-2.5 py-2 transition-colors hover:border-[var(--hairline-strong)]"
+                    >
+                      <DatapointBadge
+                        letter={point.alias}
+                        color={point.color ?? datapointColor(point, index)}
+                        onChange={(color) =>
+                          updateDatapoint(point.alias, { color })
+                        }
+                      />
+                      <div className="min-w-0 flex-[1.5]">
                         <Select
                           value={point.metric}
                           onValueChange={(metric) =>
@@ -341,7 +472,7 @@ export function ViewDialog(props: ViewDialogProps) {
                             })
                           }
                         >
-                          <SelectTrigger className="w-36">
+                          <SelectTrigger size="sm" className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -352,73 +483,59 @@ export function ViewDialog(props: ViewDialogProps) {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="min-w-0 flex-[1.3]">
                         <Select
-                          value={point.color ?? datapointColor(point, index)}
-                          onValueChange={(color) =>
-                            updateDatapoint(point.alias, { color })
+                          value={point.repoId}
+                          onValueChange={(repoId) =>
+                            updateDatapoint(point.alias, { repoId })
                           }
                         >
-                          <SelectTrigger className="w-16">
+                          <SelectTrigger size="sm" className="w-full">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="min-w-0">
-                            {VIEW_COLORS.map((c) => (
-                              <SelectItem
-                                key={c.value}
-                                value={c.value}
-                                textValue={c.label}
-                              >
-                                <span
-                                  className="size-3 rounded-full"
-                                  style={{ backgroundColor: c.value }}
-                                />
+                          <SelectContent>
+                            {repos.map((repo) => (
+                              <SelectItem key={repo.id} value={repo.id}>
+                                {repo.owner}/{repo.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeDatapoint(point.alias)}
-                        >
-                          <Trash2 className="size-4" />
-                          <span className="sr-only">Remove {point.alias}</span>
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="formula-toggle"
-                    checked={formulaEnabled}
-                    onCheckedChange={setFormulaEnabled}
-                  />
-                  <Label htmlFor="formula-toggle">Formula</Label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDatapoint(point.alias)}
+                        title="Remove data point"
+                        className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--ink-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--destructive)_14%,transparent)] hover:text-destructive"
+                      >
+                        <Trash2 className="size-3.5" />
+                        <span className="sr-only">Remove {point.alias}</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                {formulaEnabled ? (
-                  <>
-                    <Input
-                      value={formula}
-                      onChange={(event) => setFormula(event.target.value)}
-                      placeholder="A / B * 100"
-                      className="font-mono"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Reference data points by their letter, e.g. A / B * 100.
-                    </p>
-                  </>
-                ) : null}
-              </div>
-            </div>
+              )}
+            </Section>
 
-            <div className="flex flex-col gap-4 w-xl md:border-l md:pl-6">
-              <div className="flex flex-col gap-2">
-                <Label>Preview</Label>
+            {error ? (
+              <p className="text-[12.5px] text-destructive">{error}</p>
+            ) : null}
+          </div>
+
+          {/* Preview */}
+          <div className="hidden min-w-0 flex-col gap-3 border-l border-[var(--hairline)] bg-[var(--surface-1)] p-4 md:flex">
+            <div className="flex items-end justify-between gap-2 border-b border-[var(--hairline)] pb-2.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3px] text-[var(--ink-tertiary)]">
+                Live preview
+              </span>
+              <span className="text-right font-mono text-[10.5px] text-[var(--ink-subtle)]">
+                {typeLabel} · {datapoints.length}{" "}
+                {datapoints.length === 1 ? "point" : "points"}
+              </span>
+            </div>
+            <div className="flex flex-1 items-center">
+              <div className="w-full">
                 <ViewPreview
                   type={type}
                   config={config}
@@ -426,77 +543,16 @@ export function ViewDialog(props: ViewDialogProps) {
                   history={history}
                 />
               </div>
-
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="legend-toggle"
-                  checked={showLegend}
-                  onCheckedChange={setShowLegend}
-                />
-                <Label htmlFor="legend-toggle">Show legend</Label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="repo-label-toggle"
-                  checked={showRepoInLabels}
-                  onCheckedChange={setShowRepoInLabels}
-                />
-                <Label htmlFor="repo-label-toggle">Show repo in labels</Label>
-              </div>
-
-              {type !== VIEW_TYPE_NUMBER ? (
-                <div className="grid gap-2">
-                  <Label>Y-axis labels</Label>
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        Decimals
-                      </span>
-                      <Select value={yDecimals} onValueChange={setYDecimals}>
-                        <SelectTrigger className="w-28">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto</SelectItem>
-                          <SelectItem value="0">0</SelectItem>
-                          <SelectItem value="1">1</SelectItem>
-                          <SelectItem value="2">2</SelectItem>
-                          <SelectItem value="3">3</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        Prefix
-                      </span>
-                      <Input
-                        value={yPrefix}
-                        onChange={(event) => setYPrefix(event.target.value)}
-                        placeholder="$"
-                        className="w-24"
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        Postfix
-                      </span>
-                      <Input
-                        value={yPostfix}
-                        onChange={(event) => setYPostfix(event.target.value)}
-                        placeholder="%"
-                        className="w-24"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </div>
+        </div>
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-          <DialogFooter className={isEdit ? "sm:justify-between" : undefined}>
+        {/* Footer */}
+        <div className="flex shrink-0 items-center justify-between border-t border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3">
+          <span className="font-mono text-[11px] text-[var(--ink-tertiary)]">
+            {datapoints.length} {datapoints.length === 1 ? "point" : "points"}
+          </span>
+          <div className="flex items-center gap-2">
             {isEdit ? (
               <Button
                 type="button"
@@ -504,16 +560,126 @@ export function ViewDialog(props: ViewDialogProps) {
                 onClick={handleDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting…" : "Delete view"}
+                <Trash2 className="size-4" />
+                {isDeleting ? "Deleting…" : "Delete"}
               </Button>
             ) : null}
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : "Save"}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
             </Button>
-          </DialogFooter>
-        </form>
+            <Button type="button" onClick={handleSubmit} disabled={isPending}>
+              {isPending ? "Saving…" : "Save view"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10.5px] uppercase tracking-[0.4px] text-[var(--ink-tertiary)]">
+      {children}
+    </span>
+  );
+}
+
+function Section({
+  title,
+  count,
+  action,
+  children,
+}: {
+  title: string;
+  count?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-2.5">
+        <span className="text-[11px] font-medium tracking-[0.3px] text-[var(--ink-subtle)]">
+          {title}
+          {count ? (
+            <span className="ml-1.5 font-mono text-[var(--ink-tertiary)]">
+              {count}
+            </span>
+          ) : null}
+        </span>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5">
+      <Switch checked={checked} onCheckedChange={onChange} />
+      <span className="text-[13px] text-[var(--ink-muted)]">{label}</span>
+    </label>
+  );
+}
+
+function DatapointBadge({
+  letter,
+  color,
+  onChange,
+}: {
+  letter: string;
+  color: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title="Series color"
+          className="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] border font-mono text-[11px] font-semibold leading-none"
+          style={{ borderColor: color, color }}
+        >
+          {letter}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2" align="start">
+        <div className="grid grid-cols-4 gap-1.5">
+          {VIEW_COLORS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => onChange(c.value)}
+              title={c.label}
+              className="flex size-6 items-center justify-center rounded-[6px] border font-mono text-[11px] font-semibold leading-none"
+              style={{
+                borderColor: c.value,
+                color: c.value,
+                background:
+                  c.value === color
+                    ? `color-mix(in srgb, ${c.value} 22%, transparent)`
+                    : "transparent",
+              }}
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -530,14 +696,25 @@ function ViewPreview({
 }) {
   const data = buildViewData(config, repos, history);
 
+  if (config.datapoints.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-[var(--hairline-strong)] px-4 py-10 text-center">
+        <p className="text-[13.5px] text-foreground">Nothing to preview</p>
+        <p className="text-[12.5px] text-[var(--ink-subtle)]">
+          Add a data point to render the chart.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-3 rounded-xl border p-4">
+    <div className="flex flex-col gap-3 rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] p-4">
       <div>
-        <p className="truncate font-semibold leading-tight">
+        <p className="truncate text-sm font-medium leading-tight text-foreground">
           {config.title || "Untitled view"}
         </p>
         {config.subtitle ? (
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="mt-1 truncate font-mono text-[11.5px] text-[var(--ink-subtle)]">
             {config.subtitle}
           </p>
         ) : null}
@@ -546,14 +723,17 @@ function ViewPreview({
       <Visualization type={type} config={config} data={data} />
 
       {config.showLegend && config.datapoints.length > 0 ? (
-        <ul className="flex flex-col gap-1 text-sm">
+        <ul className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
           {config.datapoints.map((point, index) => (
-            <li key={point.alias} className="flex items-center gap-2">
+            <li
+              key={point.alias}
+              className="flex items-center gap-2 font-mono text-[11px] text-[var(--ink-subtle)]"
+            >
               <span
-                className="size-2.5 shrink-0 rounded-full"
+                className="h-0.5 w-4 shrink-0 rounded-full"
                 style={{ backgroundColor: datapointColor(point, index) }}
               />
-              <span className="truncate text-muted-foreground">
+              <span className="truncate">
                 {datapointDisplayLabel(point, repos, config.showRepoInLabels)}
               </span>
             </li>

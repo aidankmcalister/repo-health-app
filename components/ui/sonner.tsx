@@ -7,14 +7,17 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
-// Dark-only (the Tendril/Linear theme has no light mode), terminal-surface
-// toasts with a green success check, per the design handoff.
+// Terminal-surface toasts with a green success check, per the design handoff.
+// The Tendril theme is dark-only, but we read next-themes so it tracks the
+// active class either way.
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme = "dark" } = useTheme();
   return (
     <Sonner
-      theme="dark"
+      theme={theme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4 text-[var(--success)]" />,

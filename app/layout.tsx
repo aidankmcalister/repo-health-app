@@ -1,8 +1,9 @@
 import { AppSidebar } from "@/app/_components/app-sidebar";
 import { Breadcrumbs } from "@/app/_components/breadcrumbs";
-import { CommandMenu, CommandMenuButton } from "@/app/_components/command-menu";
+import { CommandMenu } from "@/app/_components/command-menu";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDashboardsForUser } from "@/lib/queries";
 import { getSession } from "@/lib/session";
@@ -30,24 +31,33 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("dark font-sans", roboto.variable, jetbrainsMono.variable)}
+      suppressHydrationWarning
+      className={cn("font-sans", roboto.variable, jetbrainsMono.variable)}
     >
       <body className="antialiased">
-        <TooltipProvider>
-          {session?.user ? (
-            <AppShell
-              userId={session.user.id}
-              userName={session.user.name}
-              userEmail={session.user.email}
-              userImage={session.user.image ?? null}
-            >
-              {children}
-            </AppShell>
-          ) : (
-            children
-          )}
-        </TooltipProvider>
-        <Toaster position="bottom-right" />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          forcedTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <TooltipProvider>
+            {session?.user ? (
+              <AppShell
+                userId={session.user.id}
+                userName={session.user.name}
+                userEmail={session.user.email}
+                userImage={session.user.image ?? null}
+              >
+                {children}
+              </AppShell>
+            ) : (
+              children
+            )}
+          </TooltipProvider>
+          <Toaster position="bottom-right" />
+        </ThemeProvider>
       </body>
     </html>
   );
@@ -71,18 +81,21 @@ async function AppShell({
   return (
     <SidebarProvider>
       <AppSidebar
-        dashboards={dashboards.map(({ id, name }) => ({ id, name }))}
+        dashboards={dashboards.map(({ id, name, views }) => ({
+          id,
+          name,
+          count: views.length,
+        }))}
         userName={userName}
         userEmail={userEmail}
         userImage={userImage}
       />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
+        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[var(--hairline)] bg-[var(--canvas)] px-4">
+          <SidebarTrigger className="-ml-1 text-[var(--ink-subtle)]" />
           <Breadcrumbs
             dashboards={dashboards.map(({ id, name }) => ({ id, name }))}
           />
-          <CommandMenuButton />
         </header>
         {children}
       </SidebarInset>

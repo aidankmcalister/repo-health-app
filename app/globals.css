@@ -137,6 +137,27 @@
   --chart-marker-foreground: #f7f8f8;
   --chart-ring-background: color-mix(in srgb, #23252a 35%, transparent);
   --chart-label: #62666d;
+
+  /* Raw Tendril/Linear tokens — referenced directly in components via
+     arbitrary values (bg-[var(--surface-1)], text-[var(--ink-subtle)], …).
+     These are the source-of-truth names from linear-tokens.css. */
+  --canvas: #010102;
+  --surface-1: #0f1011;
+  --surface-2: #141516;
+  --surface-3: #18191a;
+  --surface-4: #1f2023;
+  --hairline: #23252a;
+  --hairline-strong: #34343a;
+  --ink: #f7f8f8;
+  --ink-muted: #c2c6cd;
+  --ink-subtle: #8a8f98;
+  --ink-tertiary: #62666d;
+  --on-primary: #ffffff;
+  --primary-hover: #ff7d4f;
+  --primary-focus: #db5a2e;
+  --term-bg: #08080a;
+  --term-text: #c8ccd2;
+  --term-prompt: #4cb782;
 }
 
 @layer base {

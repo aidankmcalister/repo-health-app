@@ -212,7 +212,7 @@ function RepoIdentity({
         />
         <AvatarFallback>{repo.owner.slice(0, 1).toUpperCase()}</AvatarFallback>
       </Avatar>
-      <span className="truncate text-sm font-medium">{repo.nameWithOwner}</span>
+      <span className="truncate font-mono text-[13px]">{repo.nameWithOwner}</span>
       {repo.isPrivate ? (
         <Lock className="size-3.5 shrink-0 text-muted-foreground" />
       ) : null}

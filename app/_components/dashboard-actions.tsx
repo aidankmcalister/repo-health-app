@@ -5,6 +5,7 @@ import { SyncNowButton } from "@/app/_components/sync-now-button";
 import { ViewDialog, type ViewRepo } from "@/app/_components/view-dialog";
 import { Button } from "@/components/ui/button";
 import type { HistoryPoint } from "@/lib/views";
+import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 
 type DashboardActionsProps = {
@@ -35,11 +36,13 @@ export function DashboardActions({
   return (
     <div className="flex items-center gap-2">
       <SyncNowButton dashboardId={dashboardId} lastSyncedAt={lastSyncedAt} />
-      <Button variant="outline" onClick={() => setNewViewOpen(true)}>
-        New view
-      </Button>
       <Button variant="outline" onClick={() => setEditOpen(true)}>
+        <Pencil className="size-4" />
         Edit
+      </Button>
+      <Button onClick={() => setNewViewOpen(true)}>
+        <Plus className="size-4" />
+        New view
       </Button>
 
       <DashboardDialog
