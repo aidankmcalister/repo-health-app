@@ -207,10 +207,16 @@ function computeChart(
   const showRepo = config.showRepoInLabels ?? false;
 
   if (config.formula || config.datapoints.length <= 1) {
-    const label = config.title?.trim() || "Value";
-    const color = config.datapoints[0]
-      ? datapointColor(config.datapoints[0], 0)
-      : VIEW_COLORS[0].value;
+    const first = config.datapoints[0];
+    // A formula collapses the points into one computed series, so the view
+    // title is the right label. With a single plain data point, label the line
+    // with the data point itself (matching the legend), not the view name.
+    const label = config.formula
+      ? config.title?.trim() || "Value"
+      : first
+        ? datapointDisplayLabel(first, repos, showRepo)
+        : config.title?.trim() || "Value";
+    const color = first ? datapointColor(first, 0) : VIEW_COLORS[0].value;
     const series = computeViewSeries(config, history);
     return {
       rows: series.map((point) => ({ date: point.date, s0: point.value })),
