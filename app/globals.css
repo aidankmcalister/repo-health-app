@@ -85,7 +85,7 @@
   --secondary-foreground: #f7f8f8;
   --muted: #141516; /* surface-2 */
   --muted-foreground: #8a8f98; /* ink-subtle */
-  --accent: #18191a; /* surface-3 (hover) */
+  --accent: #1f2023; /* surface-4 — distinct from popover so menu hovers show */
   --accent-foreground: #f7f8f8;
   --destructive: #eb5757; /* label-red */
   --destructive-foreground: #ffffff;

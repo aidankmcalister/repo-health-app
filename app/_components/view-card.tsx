@@ -35,7 +35,7 @@ export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
   const data = buildViewData(config, repos, history);
 
   return (
-    <div className="group flex w-80 flex-col gap-3 overflow-hidden rounded-lg border border-[var(--hairline)] bg-[var(--surface-1)] px-5 py-[18px]">
+    <div className="group relative z-0 flex w-80 flex-col gap-3 rounded-lg border border-[var(--hairline)] bg-[var(--surface-1)] px-5 py-[18px] hover:z-20">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium leading-tight text-foreground">
