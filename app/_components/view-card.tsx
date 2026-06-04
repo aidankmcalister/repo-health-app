@@ -4,7 +4,13 @@ import { ViewDialog } from "@/app/_components/view-dialog";
 import { Button } from "@/components/ui/button";
 import { Visualization } from "@/components/visualizations";
 import { ViewLegend } from "@/components/visualizations/view-legend";
-import { buildViewData, type HistoryPoint, type ViewConfig } from "@/lib/views";
+import { cn } from "@/lib/utils";
+import {
+  buildViewData,
+  VIEW_TYPE_NUMBER,
+  type HistoryPoint,
+  type ViewConfig,
+} from "@/lib/views";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 
@@ -30,7 +36,14 @@ export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
   const data = buildViewData(config, repos, history);
 
   return (
-    <div className="group relative z-0 flex w-80 flex-col gap-3 rounded-lg border border-[var(--hairline)] bg-[var(--surface-1)] px-5 py-[18px] hover:z-20">
+    <div
+      className={cn(
+        "group relative z-0 flex w-80 flex-col gap-3 rounded-lg border border-[var(--hairline)] bg-[var(--surface-1)] px-5 py-[18px] hover:z-20",
+        // Clip the Big Number sparkline to the rounded corners. Charts keep
+        // overflow visible so their hover tooltip isn't cut off.
+        type === VIEW_TYPE_NUMBER && "overflow-hidden",
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium leading-tight text-foreground">

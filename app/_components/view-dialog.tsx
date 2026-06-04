@@ -1031,7 +1031,7 @@ function ViewPreview({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] p-4">
+    <div className="flex flex-col gap-3 overflow-hidden rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] px-5 py-[18px]">
       <div>
         <p className="truncate text-sm font-medium leading-tight text-foreground">
           {config.title || "Untitled view"}
