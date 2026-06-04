@@ -67,7 +67,23 @@ export type ViewConfig = {
   showLegend: boolean;
   showRepoInLabels: boolean;
   yAxis?: YAxisConfig;
+  // Per-chart-type options (all optional for back-compat with older views).
+  range?: number | null; // history window in days; null/undefined = all
+  curve?: "smooth" | "linear"; // line + area
+  markers?: boolean; // line
+  areaFill?: "gradient" | "line"; // area
+  barGrouping?: "grouped" | "stacked"; // bar
 };
+
+/** Trims history to the last `range` days (null/undefined = keep everything). */
+function windowHistory(
+  history: HistoryPoint[],
+  range: number | null | undefined,
+): HistoryPoint[] {
+  if (!range || range <= 0) return history;
+  const cutoff = Date.now() - range * 86_400_000;
+  return history.filter((point) => point.date >= cutoff);
+}
 
 /** Formats a y-axis tick using the view's decimals/prefix/postfix (auto if unset). */
 export function formatAxisValue(value: number, yAxis?: YAxisConfig | null): string {
@@ -172,7 +188,9 @@ export function buildViewData(
     .map((point) => ({ alias: point.alias, value: resolve(point.repoId, point.metric) }))
     .filter((entry): entry is { alias: string; value: number } => entry.value !== null);
 
-  const chart = computeChart(config, repos, history);
+  // Charts respect the date-range window; the Big Number's latest value does not.
+  const windowed = windowHistory(history, config.range);
+  const chart = computeChart(config, repos, windowed);
 
   const unavailable =
     config.datapoints.length > 0 &&
@@ -183,7 +201,7 @@ export function buildViewData(
 
   return {
     value: computeViewValue(config, resolve),
-    series: computeViewSeries(config, history),
+    series: computeViewSeries(config, windowed),
     breakdown,
     chartRows: chart.rows,
     chartLines: chart.lines,

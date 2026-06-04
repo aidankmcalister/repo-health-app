@@ -22,6 +22,7 @@ export function BarVisualization({ config, data }: VisualizationProps) {
       xDataKey="date"
       aspectRatio="16 / 9"
       margin={{ top: 16, right: 16, bottom: 28, left: 44 }}
+      stacked={config.barGrouping === "stacked"}
     >
       <Grid horizontal />
       {data.chartLines.map((line) => (

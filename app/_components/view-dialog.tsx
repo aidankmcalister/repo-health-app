@@ -32,6 +32,9 @@ import {
   datapointDisplayLabel,
   defaultShowLegend,
   VIEW_COLORS,
+  VIEW_TYPE_AREA,
+  VIEW_TYPE_BAR,
+  VIEW_TYPE_LINE,
   VIEW_TYPE_NUMBER,
   VIEW_TYPES,
   type HistoryPoint,
@@ -133,6 +136,21 @@ export function ViewDialog(props: ViewDialogProps) {
   const [yPostfix, setYPostfix] = useState(
     isEdit ? (props.initialConfig.yAxis?.postfix ?? "") : "",
   );
+  const [range, setRange] = useState<number | null>(
+    isEdit ? (props.initialConfig.range ?? 90) : 90,
+  );
+  const [curve, setCurve] = useState<"smooth" | "linear">(
+    isEdit ? (props.initialConfig.curve ?? "smooth") : "smooth",
+  );
+  const [markers, setMarkers] = useState(
+    isEdit ? (props.initialConfig.markers ?? false) : false,
+  );
+  const [areaFill, setAreaFill] = useState<"gradient" | "line">(
+    isEdit ? (props.initialConfig.areaFill ?? "gradient") : "gradient",
+  );
+  const [barGrouping, setBarGrouping] = useState<"grouped" | "stacked">(
+    isEdit ? (props.initialConfig.barGrouping ?? "grouped") : "grouped",
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDelete] = useTransition();
@@ -157,6 +175,11 @@ export function ViewDialog(props: ViewDialogProps) {
       prefix: yPrefix.trim() ? yPrefix : null,
       postfix: yPostfix.trim() ? yPostfix : null,
     },
+    range: isNumber ? null : range,
+    curve,
+    markers,
+    areaFill,
+    barGrouping,
   };
 
   function changeType(next: string) {
@@ -339,7 +362,7 @@ export function ViewDialog(props: ViewDialogProps) {
               </div>
             </div>
 
-            {/* Chart options */}
+            {/* Chart options — distinct per chart type, per the design */}
             <Section title="Chart options">
               {isNumber ? (
                 <div className="flex flex-col gap-1.5">
@@ -361,45 +384,119 @@ export function ViewDialog(props: ViewDialogProps) {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabel>Y-axis labels</FieldLabel>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <Select value={yDecimals} onValueChange={setYDecimals}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="auto">Auto</SelectItem>
-                        <SelectItem value="0">0</SelectItem>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={yPrefix}
-                      onChange={(event) => setYPrefix(event.target.value)}
-                      placeholder="Prefix"
-                    />
-                    <Input
-                      value={yPostfix}
-                      onChange={(event) => setYPostfix(event.target.value)}
-                      placeholder="Postfix"
-                    />
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel>Date range</FieldLabel>
+                    <DateRange value={range} onChange={setRange} />
                   </div>
-                </div>
+
+                  {type === VIEW_TYPE_LINE ? (
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <FieldLabel>Curve</FieldLabel>
+                        <Segmented
+                          value={curve}
+                          onChange={(v) => setCurve(v as "smooth" | "linear")}
+                          options={[
+                            { value: "smooth", label: "Smooth" },
+                            { value: "linear", label: "Linear" },
+                          ]}
+                        />
+                      </div>
+                      <ToggleRow
+                        label="Markers"
+                        checked={markers}
+                        onChange={setMarkers}
+                      />
+                    </>
+                  ) : null}
+
+                  {type === VIEW_TYPE_AREA ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <FieldLabel>Curve</FieldLabel>
+                        <Segmented
+                          value={curve}
+                          onChange={(v) => setCurve(v as "smooth" | "linear")}
+                          options={[
+                            { value: "smooth", label: "Smooth" },
+                            { value: "linear", label: "Linear" },
+                          ]}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <FieldLabel>Fill</FieldLabel>
+                        <Segmented
+                          value={areaFill}
+                          onChange={(v) =>
+                            setAreaFill(v as "gradient" | "line")
+                          }
+                          options={[
+                            { value: "gradient", label: "Gradient" },
+                            { value: "line", label: "Line" },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {type === VIEW_TYPE_BAR ? (
+                    <div className="flex flex-col gap-1.5">
+                      <FieldLabel>Bars</FieldLabel>
+                      <Segmented
+                        value={barGrouping}
+                        onChange={(v) =>
+                          setBarGrouping(v as "grouped" | "stacked")
+                        }
+                        options={[
+                          { value: "grouped", label: "Grouped" },
+                          { value: "stacked", label: "Stacked" },
+                        ]}
+                      />
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel>Y-axis labels</FieldLabel>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <Select value={yDecimals} onValueChange={setYDecimals}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Auto</SelectItem>
+                          <SelectItem value="0">0</SelectItem>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={yPrefix}
+                        onChange={(event) => setYPrefix(event.target.value)}
+                        placeholder="Prefix"
+                      />
+                      <Input
+                        value={yPostfix}
+                        onChange={(event) => setYPostfix(event.target.value)}
+                        placeholder="Postfix"
+                      />
+                    </div>
+                  </div>
+
+                  <ToggleRow
+                    label="Show legend"
+                    checked={showLegend}
+                    onChange={setShowLegend}
+                  />
+                  <ToggleRow
+                    label="Show repo in labels"
+                    checked={showRepoInLabels}
+                    onChange={setShowRepoInLabels}
+                  />
+                </>
               )}
 
-              <ToggleRow
-                label="Show legend"
-                checked={showLegend}
-                onChange={setShowLegend}
-              />
-              <ToggleRow
-                label="Show repo in labels"
-                checked={showRepoInLabels}
-                onChange={setShowRepoInLabels}
-              />
               <ToggleRow
                 label="Use a formula"
                 checked={formulaEnabled}
@@ -530,7 +627,9 @@ export function ViewDialog(props: ViewDialogProps) {
                 Live preview
               </span>
               <span className="text-right font-mono text-[10.5px] text-[var(--ink-subtle)]">
-                {typeLabel} · {datapoints.length}{" "}
+                {typeLabel}
+                {!isNumber ? ` · ${range ? `${range}d` : "all"}` : ""} ·{" "}
+                {datapoints.length}{" "}
                 {datapoints.length === 1 ? "point" : "points"}
               </span>
             </div>
@@ -632,6 +731,70 @@ function ToggleRow({
       <Switch checked={checked} onCheckedChange={onChange} />
       <span className="text-[13px] text-[var(--ink-muted)]">{label}</span>
     </label>
+  );
+}
+
+function Segmented({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="inline-flex gap-0.5 self-start rounded-md border border-[var(--hairline)] bg-[var(--surface-1)] p-0.5">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "h-7 rounded-[6px] px-3 text-[13px] font-medium transition-colors",
+            option.value === value
+              ? "bg-[var(--surface-3)] text-foreground"
+              : "text-[var(--ink-subtle)] hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DateRange({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) {
+  const presets: { v: number | null; l: string }[] = [
+    { v: 7, l: "7D" },
+    { v: 30, l: "30D" },
+    { v: 90, l: "90D" },
+    { v: null, l: "All" },
+  ];
+  return (
+    <div className="inline-flex gap-0.5 self-start border-b border-[var(--hairline)]">
+      {presets.map((preset) => (
+        <button
+          key={preset.l}
+          type="button"
+          onClick={() => onChange(preset.v)}
+          className={cn(
+            "-mb-px h-8 border-b-2 px-3 text-[13.5px] tabular-nums transition-colors",
+            value === preset.v
+              ? "border-primary font-medium text-foreground"
+              : "border-transparent text-[var(--ink-subtle)] hover:text-foreground",
+          )}
+        >
+          {preset.l}
+        </button>
+      ))}
+    </div>
   );
 }
 

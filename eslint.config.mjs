@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "components/charts/**",
     // One-off maintenance / verification scripts.
     "scripts/**",
+    // Design handoff reference bundle (not application code).
+    "tendril-design-TEMP/**",
   ]),
 ]);
 

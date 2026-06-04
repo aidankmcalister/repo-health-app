@@ -1,0 +1,252 @@
+/* ============================================================
+   LINEAR DESIGN SYSTEM — colors_and_type.css
+   Derived from uploads/DESIGN-linear.app.md (linear.app marketing canvas)
+
+   FONT CHOICE
+   Linear's product typefaces (Linear Display / Text / Mono) are
+   proprietary. Per the user's direction, this system uses:
+     · Display + Text  →  Roboto  (weights 400/500/600/700)
+     · Mono            →  JetBrains Mono (weight 400/500)
+   Roboto leads the stack directly (not the macOS SF fallback) so the
+   chosen brand face renders consistently across platforms.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ---------- FONT FAMILIES ---------- */
+  --font-display: "Roboto", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-text:    "Roboto", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  /* ============================================================
+     COLOR — BASE TOKENS
+     ============================================================ */
+
+  /* Brand & accent — DUOTONE identity (the differentiator from Linear's
+     single lavender). Orange = action; Teal = taxonomy / developer. */
+  --primary:        #f46a3c;   /* signature orange — primary CTA, brand mark, focus, action */
+  --on-primary:     #ffffff;   /* light text on orange (matches Linear's light-on-accent approach) */
+  --primary-hover:  #ff885f;   /* lighter orange — hover */
+  --primary-focus:  #db5a2e;   /* deeper orange — pressed / focus ring */
+
+  --accent-2:        #1fb8a6;  /* signature teal — category labels, dev/terminal prompt, secondary accent */
+  --on-accent-2:     #04201d;  /* dark text on teal (when teal is a fill) */
+  --accent-2-hover:  #38d6c2;  /* lighter teal */
+  --accent-2-focus:  #169486;  /* deeper teal */
+
+  --brand-secure:   #6f9b95;   /* muted teal-gray — security surfaces */
+
+  /* Surfaces — the four-step dark ladder */
+  --canvas:     #010102;       /* near-pure black, faint blue tint — page background */
+  --surface-1:  #0f1011;       /* cards, panels, product screenshot frames */
+  --surface-2:  #141516;       /* featured / hovered cards */
+  --surface-3:  #18191a;       /* sub-nav, dropdown menus */
+  --surface-4:  #191a1b;       /* deepest lifted surface */
+
+  /* Hairline borders */
+  --hairline:          #23252a;
+  --hairline-strong:   #34343a;
+  --hairline-tertiary: #3e3e44;
+
+  /* Inverse (light) surfaces — used by the rare white inverse pill CTA */
+  --inverse-canvas:    #ffffff;
+  --inverse-surface-1: #f5f6f6;
+  --inverse-surface-2: #f6f7f7;
+  --inverse-ink:       #000000;
+
+  /* Text / ink ramp */
+  --ink:          #f7f8f8;   /* headlines + emphasized body */
+  --ink-muted:    #d0d6e0;   /* secondary type */
+  --ink-subtle:   #8a8f98;   /* tertiary type — deselected tabs, footer */
+  --ink-tertiary: #62666d;   /* quaternary — disabled, footnotes */
+
+  /* Semantic — restrained on marketing surface */
+  --success: #27a644;        /* status pills, success indicator — the only semantic color */
+  --overlay: #000000;        /* modal scrim */
+
+  /* In-product label palette (issue priorities / project labels).
+     Lives only inside product UI mockups — never on marketing chrome. */
+  --label-red:    #eb5757;
+  --label-orange: #fc7840;
+  --label-yellow: #f2c94c;
+  --label-green:  #4cb782;
+  --label-blue:   #4ea7fc;
+  --label-purple: #b59aff;
+
+  /* ============================================================
+     RADIUS
+     ============================================================ */
+  --radius-xs:   4px;   /* chips, status badges */
+  --radius-sm:   6px;   /* inline tags */
+  --radius-md:   8px;   /* buttons, inputs */
+  --radius-lg:   12px;  /* feature / pricing / testimonial cards */
+  --radius-xl:   16px;  /* product screenshot panels */
+  --radius-xxl:  24px;  /* oversized CTA banners (rare) */
+  --radius-pill: 9999px;
+  --radius-full: 9999px;
+
+  /* ============================================================
+     SPACING — 4px base
+     ============================================================ */
+  --space-xxs:     4px;
+  --space-xs:      8px;
+  --space-sm:      12px;
+  --space-md:      16px;
+  --space-lg:      24px;
+  --space-xl:      32px;
+  --space-xxl:     48px;
+  --space-section: 96px;
+
+  /* ============================================================
+     TYPE — BASE STYLE TOKENS  (size / weight / line-height / tracking)
+     ============================================================ */
+  --display-xl-size: 80px;  --display-xl-weight: 600;  --display-xl-lh: 1.05; --display-xl-ls: -3.0px;
+  --display-lg-size: 56px;  --display-lg-weight: 600;  --display-lg-lh: 1.10; --display-lg-ls: -1.8px;
+  --display-md-size: 40px;  --display-md-weight: 600;  --display-md-lh: 1.15; --display-md-ls: -1.0px;
+  --headline-size:   28px;  --headline-weight:   600;  --headline-lh:   1.20; --headline-ls:   -0.6px;
+  --card-title-size: 22px;  --card-title-weight: 500;  --card-title-lh: 1.25; --card-title-ls: -0.4px;
+  --subhead-size:    20px;  --subhead-weight:    400;  --subhead-lh:    1.40; --subhead-ls:    -0.2px;
+  --body-lg-size:    18px;  --body-lg-weight:    400;  --body-lg-lh:    1.50; --body-lg-ls:    -0.1px;
+  --body-size:       16px;  --body-weight:       400;  --body-lh:       1.50; --body-ls:       -0.05px;
+  --body-sm-size:    14px;  --body-sm-weight:    400;  --body-sm-lh:    1.50; --body-sm-ls:    0;
+  --caption-size:    12px;  --caption-weight:    400;  --caption-lh:    1.40; --caption-ls:    0;
+  --button-size:     14px;  --button-weight:     500;  --button-lh:     1.20; --button-ls:     0;
+  --eyebrow-size:    13px;  --eyebrow-weight:    500;  --eyebrow-lh:    1.30; --eyebrow-ls:    0.4px;
+  --mono-size:       13px;  --mono-weight:       400;  --mono-lh:       1.50; --mono-ls:       0;
+
+  /* ============================================================
+     DEVELOPER LAYER  (merged from OpenCode — opencode.ai)
+     A terminal / code surface vocabulary, re-keyed to Linear's dark
+     palette. Linear stays primary: Roboto display + lavender lead the
+     brand; this layer governs code, install, and terminal surfaces.
+     ============================================================ */
+
+  /* Terminal & code surfaces — a touch deeper than canvas, with a real
+     top-edge highlight so the "pixel-rendered" terminal reads as a panel. */
+  --term-bg:        #08080a;   /* terminal / TUI mockup background */
+  --term-surface:   #131417;   /* prompt row / elevated line inside terminal */
+  --code-bg:        var(--surface-1);   /* inline + block code on marketing */
+  --term-hairline:  var(--hairline);
+
+  /* Syntax highlighting — built from Linear's in-product label palette
+     (NOT a new chromatic system). Used only in code / terminal contexts. */
+  --syntax-keyword: var(--label-purple);  /* keywords, flags */
+  --syntax-string:  var(--label-green);   /* strings, success output */
+  --syntax-fn:      var(--label-blue);     /* functions, paths, links */
+  --syntax-number:  var(--label-orange);  /* numbers, versions */
+  --syntax-meta:    var(--label-yellow);  /* model names, tokens */
+  --syntax-comment: var(--ink-tertiary);  /* comments, hints */
+  --term-prompt:    var(--accent-2-hover); /* the $ / ❯ prompt glyph — teal */
+  --term-text:      #c9cdd6;              /* default terminal foreground */
+
+  /* Feature-list marker colors (Lucide icons): add / note / done / remove */
+  --ascii-add:    var(--success);
+  --ascii-note:   var(--ink-subtle);
+  --ascii-done:   var(--label-blue);
+  --ascii-remove: var(--label-red);
+}
+
+/* ============================================================
+   SEMANTIC TYPE CLASSES
+   Apply directly, e.g. <h1 class="t-display-xl">
+   ============================================================ */
+.t-display-xl { font-family: var(--font-display); font-size: var(--display-xl-size); font-weight: var(--display-xl-weight); line-height: var(--display-xl-lh); letter-spacing: var(--display-xl-ls); color: var(--ink); }
+.t-display-lg { font-family: var(--font-display); font-size: var(--display-lg-size); font-weight: var(--display-lg-weight); line-height: var(--display-lg-lh); letter-spacing: var(--display-lg-ls); color: var(--ink); }
+.t-display-md { font-family: var(--font-display); font-size: var(--display-md-size); font-weight: var(--display-md-weight); line-height: var(--display-md-lh); letter-spacing: var(--display-md-ls); color: var(--ink); }
+.t-headline   { font-family: var(--font-display); font-size: var(--headline-size);   font-weight: var(--headline-weight);   line-height: var(--headline-lh);   letter-spacing: var(--headline-ls);   color: var(--ink); }
+.t-card-title { font-family: var(--font-display); font-size: var(--card-title-size); font-weight: var(--card-title-weight); line-height: var(--card-title-lh); letter-spacing: var(--card-title-ls); color: var(--ink); }
+.t-subhead    { font-family: var(--font-display); font-size: var(--subhead-size);    font-weight: var(--subhead-weight);    line-height: var(--subhead-lh);    letter-spacing: var(--subhead-ls);    color: var(--ink-muted); }
+.t-body-lg    { font-family: var(--font-text);    font-size: var(--body-lg-size);    font-weight: var(--body-lg-weight);    line-height: var(--body-lg-lh);    letter-spacing: var(--body-lg-ls);    color: var(--ink-muted); }
+.t-body       { font-family: var(--font-text);    font-size: var(--body-size);       font-weight: var(--body-weight);       line-height: var(--body-lh);       letter-spacing: var(--body-ls);       color: var(--ink-muted); }
+.t-body-sm    { font-family: var(--font-text);    font-size: var(--body-sm-size);    font-weight: var(--body-sm-weight);    line-height: var(--body-sm-lh);    letter-spacing: var(--body-sm-ls);    color: var(--ink-subtle); }
+.t-caption    { font-family: var(--font-text);    font-size: var(--caption-size);    font-weight: var(--caption-weight);    line-height: var(--caption-lh);    letter-spacing: var(--caption-ls);    color: var(--ink-subtle); }
+.t-button     { font-family: var(--font-text);    font-size: var(--button-size);     font-weight: var(--button-weight);     line-height: var(--button-lh);     letter-spacing: var(--button-ls); }
+.t-eyebrow    { font-family: var(--font-text);    font-size: var(--eyebrow-size);    font-weight: var(--eyebrow-weight);    line-height: var(--eyebrow-lh);    letter-spacing: var(--eyebrow-ls);    text-transform: none; color: var(--ink-subtle); }
+.t-mono       { font-family: var(--font-mono);    font-size: var(--mono-size);       font-weight: var(--mono-weight);       line-height: var(--mono-lh);       letter-spacing: var(--mono-ls);       color: var(--ink-muted); }
+
+/* ============================================================
+   ELEMENT DEFAULTS
+   ============================================================ */
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--body-size);
+  line-height: var(--body-lh);
+  letter-spacing: var(--body-ls);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1 { font-family: var(--font-display); font-size: var(--display-lg-size); font-weight: 600; line-height: var(--display-lg-lh); letter-spacing: var(--display-lg-ls); color: var(--ink); margin: 0; }
+h2 { font-family: var(--font-display); font-size: var(--display-md-size); font-weight: 600; line-height: var(--display-md-lh); letter-spacing: var(--display-md-ls); color: var(--ink); margin: 0; }
+h3 { font-family: var(--font-display); font-size: var(--headline-size);   font-weight: 600; line-height: var(--headline-lh);   letter-spacing: var(--headline-ls);   color: var(--ink); margin: 0; }
+h4 { font-family: var(--font-display); font-size: var(--card-title-size); font-weight: 500; line-height: var(--card-title-lh); letter-spacing: var(--card-title-ls); color: var(--ink); margin: 0; }
+p  { margin: 0; color: var(--ink-muted); }
+a  { color: var(--ink); text-decoration: none; }
+code, pre { font-family: var(--font-mono); font-size: var(--mono-size); }
+
+/* ============================================================
+   DEVELOPER LAYER — UTILITY CLASSES  (merged from OpenCode)
+   ============================================================ */
+
+/* Inline + block code on marketing surfaces */
+.code-block {
+  font-family: var(--font-mono); font-size: var(--mono-size); line-height: 1.6;
+  color: var(--term-text); background: var(--code-bg);
+  border: 1px solid var(--hairline); border-radius: var(--radius-md);
+  padding: 14px 16px; overflow-x: auto;
+}
+.code-block .tok-kw   { color: var(--syntax-keyword); }
+.code-block .tok-str  { color: var(--syntax-string); }
+.code-block .tok-fn   { color: var(--syntax-fn); }
+.code-block .tok-num  { color: var(--syntax-number); }
+.code-block .tok-meta { color: var(--syntax-meta); }
+.code-block .tok-cm   { color: var(--syntax-comment); }
+
+/* Install snippet — copy-a-command pill */
+.install-snippet {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--font-mono); font-size: var(--mono-size);
+  color: var(--ink); background: var(--surface-1);
+  border: 1px solid var(--hairline); border-radius: var(--radius-md);
+  padding: 12px 12px 12px 16px;
+}
+.install-snippet .prompt { color: var(--term-prompt); user-select: none; }
+.install-snippet .copy {
+  margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  color: var(--ink-subtle); background: var(--surface-3); border: 1px solid var(--hairline);
+  cursor: pointer;
+}
+
+/* Terminal / TUI mockup — the single dark "developer moment" */
+.terminal {
+  font-family: var(--font-mono); font-size: var(--mono-size); line-height: 1.65;
+  color: var(--term-text); background: var(--term-bg);
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-lg);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset; overflow: hidden;
+}
+.terminal__bar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 14px; border-bottom: 1px solid var(--hairline);
+}
+.terminal__dot { width: 11px; height: 11px; border-radius: 50%; }
+.terminal__body { padding: 16px 18px; }
+
+/* Feature list — Lucide icon markers (replaces the old ASCII bracket bullets).
+   add = circle-plus (green) · note = circle-minus (subtle) ·
+   done = circle-check (blue) · remove = circle-x (red) */
+.feature-list { list-style: none; margin: 0; padding: 0; }
+.feature-list li {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-family: var(--font-text); font-size: 14px; line-height: 1.55;
+  color: var(--ink-muted); padding: 7px 0;
+}
+.feature-list li .fl-ic { flex: none; display: inline-flex; color: var(--ascii-add); transform: translateY(2px); }
+.feature-list li .fl-ic svg { width: 16px; height: 16px; }
+.feature-list li.note   .fl-ic { color: var(--ascii-note); }
+.feature-list li.done   .fl-ic { color: var(--ascii-done); }
+.feature-list li.remove .fl-ic { color: var(--ascii-remove); }
+.feature-list li b { color: var(--ink); font-weight: 600; }
+

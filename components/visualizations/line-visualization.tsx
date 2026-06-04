@@ -6,6 +6,7 @@ import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import { XAxis } from "@/components/charts/x-axis";
 import { ValueYAxis } from "@/components/charts/value-y-axis";
 import { formatAxisValue } from "@/lib/views";
+import { curveLinear, curveNatural } from "@visx/curve";
 import { tooltipRows } from "./chart-tooltip-rows";
 import { NotEnoughHistory } from "./not-enough-history";
 import type { VisualizationProps } from "./types";
@@ -14,6 +15,8 @@ import type { VisualizationProps } from "./types";
 export function LineVisualization({ config, data }: VisualizationProps) {
   if (data.unavailable) return <NotEnoughHistory unavailable />;
   if (data.chartRows.length < 2) return <NotEnoughHistory />;
+
+  const curve = config.curve === "linear" ? curveLinear : curveNatural;
 
   return (
     <LineChart
@@ -24,7 +27,13 @@ export function LineVisualization({ config, data }: VisualizationProps) {
     >
       <Grid horizontal />
       {data.chartLines.map((line) => (
-        <Line key={line.key} dataKey={line.key} stroke={line.color} />
+        <Line
+          key={line.key}
+          dataKey={line.key}
+          stroke={line.color}
+          curve={curve}
+          showMarkers={config.markers ?? false}
+        />
       ))}
       <ValueYAxis format={(value) => formatAxisValue(value, config.yAxis)} />
       <XAxis />

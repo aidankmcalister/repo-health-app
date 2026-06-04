@@ -6,6 +6,7 @@ import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import { XAxis } from "@/components/charts/x-axis";
 import { ValueYAxis } from "@/components/charts/value-y-axis";
 import { formatAxisValue } from "@/lib/views";
+import { curveLinear, curveMonotoneX } from "@visx/curve";
 import { tooltipRows } from "./chart-tooltip-rows";
 import { NotEnoughHistory } from "./not-enough-history";
 import type { VisualizationProps } from "./types";
@@ -14,6 +15,10 @@ import type { VisualizationProps } from "./types";
 export function AreaVisualization({ config, data }: VisualizationProps) {
   if (data.unavailable) return <NotEnoughHistory unavailable />;
   if (data.chartRows.length < 2) return <NotEnoughHistory />;
+
+  const curve = config.curve === "linear" ? curveLinear : curveMonotoneX;
+  // "line" fill mode = stroke only (no gradient); "gradient" fills the area.
+  const fillOpacity = config.areaFill === "line" ? 0 : 0.4;
 
   return (
     <AreaChart
@@ -29,6 +34,8 @@ export function AreaVisualization({ config, data }: VisualizationProps) {
           dataKey={line.key}
           fill={line.color}
           stroke={line.color}
+          curve={curve}
+          fillOpacity={fillOpacity}
         />
       ))}
       <ValueYAxis format={(value) => formatAxisValue(value, config.yAxis)} />
