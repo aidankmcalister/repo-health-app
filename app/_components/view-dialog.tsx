@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Visualization } from "@/components/visualizations";
+import { ViewLegend } from "@/components/visualizations/view-legend";
 import { METRIC_LABELS, REPO_METRICS, type RepoMetric } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import {
@@ -30,7 +31,6 @@ import {
   ALIASES,
   buildViewData,
   datapointColor,
-  datapointDisplayLabel,
   defaultShowLegend,
   MAX_DATAPOINTS,
   VIEW_COLORS,
@@ -73,6 +73,19 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   area: ChartArea,
   bar: ChartColumn,
 };
+
+const CURVE_OPTIONS = [
+  { value: "smooth", label: "Smooth" },
+  { value: "linear", label: "Linear" },
+];
+const FILL_OPTIONS = [
+  { value: "gradient", label: "Gradient" },
+  { value: "line", label: "Line" },
+];
+const BAR_OPTIONS = [
+  { value: "grouped", label: "Grouped" },
+  { value: "stacked", label: "Stacked" },
+];
 
 type ViewDialogProps = {
   open: boolean;
@@ -473,10 +486,7 @@ export function ViewDialog(props: ViewDialogProps) {
                         <Segmented
                           value={curve}
                           onChange={(v) => setCurve(v as "smooth" | "linear")}
-                          options={[
-                            { value: "smooth", label: "Smooth" },
-                            { value: "linear", label: "Linear" },
-                          ]}
+                          options={CURVE_OPTIONS}
                         />
                       </div>
                       <ToggleRow
@@ -494,10 +504,7 @@ export function ViewDialog(props: ViewDialogProps) {
                         <Segmented
                           value={curve}
                           onChange={(v) => setCurve(v as "smooth" | "linear")}
-                          options={[
-                            { value: "smooth", label: "Smooth" },
-                            { value: "linear", label: "Linear" },
-                          ]}
+                          options={CURVE_OPTIONS}
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -507,10 +514,7 @@ export function ViewDialog(props: ViewDialogProps) {
                           onChange={(v) =>
                             setAreaFill(v as "gradient" | "line")
                           }
-                          options={[
-                            { value: "gradient", label: "Gradient" },
-                            { value: "line", label: "Line" },
-                          ]}
+                          options={FILL_OPTIONS}
                         />
                       </div>
                     </div>
@@ -525,10 +529,7 @@ export function ViewDialog(props: ViewDialogProps) {
                           onChange={(v) =>
                             setBarGrouping(v as "grouped" | "stacked")
                           }
-                          options={[
-                            { value: "grouped", label: "Grouped" },
-                            { value: "stacked", label: "Stacked" },
-                          ]}
+                          options={BAR_OPTIONS}
                         />
                       </div>
                       <ToggleRow
@@ -1044,24 +1045,7 @@ function ViewPreview({
 
       <Visualization type={type} config={config} data={data} />
 
-      {config.showLegend && config.datapoints.length > 0 ? (
-        <ul className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
-          {config.datapoints.map((point, index) => (
-            <li
-              key={point.alias}
-              className="flex items-center gap-2 font-mono text-[11px] text-[var(--ink-subtle)]"
-            >
-              <span
-                className="h-0.5 w-4 shrink-0 rounded-full"
-                style={{ backgroundColor: datapointColor(point, index) }}
-              />
-              <span className="truncate">
-                {datapointDisplayLabel(point, repos, config.showRepoInLabels)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <ViewLegend config={config} repos={repos} />
     </div>
   );
 }
