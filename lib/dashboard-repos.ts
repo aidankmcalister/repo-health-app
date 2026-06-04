@@ -3,6 +3,7 @@ import { backfillRepo } from "@/lib/github/backfill";
 import { getGithubAccessToken } from "@/lib/github/client";
 import { fetchRepoData } from "@/lib/github/repo";
 import { REPO_METRICS } from "@/lib/metrics";
+import { after } from "next/server";
 
 export type RepoRef = { owner: string; name: string };
 
@@ -76,10 +77,15 @@ export async function linkRepo(
     return repo.id;
   });
 
-  // First time we've ever seen this repo: reconstruct ~90 days of history.
+  // First time we've ever seen this repo: reconstruct ~90 days of history in the
+  // background (after the response) so adding a repo returns immediately. The
+  // repo stays backfilledAt=null until it finishes, which the UI shows as
+  // "Backfilling…".
   if (!existing) {
-    await backfillRepo(token, data.owner, data.name, repoId, data.metrics).catch(
-      () => null,
+    after(() =>
+      backfillRepo(token, data.owner, data.name, repoId, data.metrics).catch(
+        () => null,
+      ),
     );
   }
 }

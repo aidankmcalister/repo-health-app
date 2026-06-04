@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AccessibleRepo } from "@/lib/github/repos";
+import { parseRepoRef } from "@/lib/parse-repo";
 import { Check, Lock, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -225,14 +226,14 @@ function CustomRepoRow({ onAdd }: { onAdd: (repo: AccessibleRepo) => void }) {
   const [isPending, setIsPending] = useState(false);
 
   async function handleAdd() {
-    const [owner, name] = value.trim().split("/");
-    if (!owner || !name) {
-      setError("Enter a repo as owner/name.");
+    const parsed = parseRepoRef(value);
+    if (!parsed) {
+      setError("Enter a repo as owner/name or a GitHub URL.");
       return;
     }
     setError(null);
     setIsPending(true);
-    const result = await lookupImportableRepo(owner, name);
+    const result = await lookupImportableRepo(parsed.owner, parsed.name);
     setIsPending(false);
     if (result.ok && result.repo) {
       onAdd(result.repo);
@@ -256,7 +257,7 @@ function CustomRepoRow({ onAdd }: { onAdd: (repo: AccessibleRepo) => void }) {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="owner/name"
+          placeholder="owner/name or GitHub URL"
           className="h-8"
         />
         <Button

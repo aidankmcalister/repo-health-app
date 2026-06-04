@@ -12,6 +12,7 @@ import type { VisualizationProps } from "./types";
 
 /** Area Chart: one filled series per data point (or one when a formula is set). */
 export function AreaVisualization({ config, data }: VisualizationProps) {
+  if (data.unavailable) return <NotEnoughHistory unavailable />;
   if (data.chartRows.length < 2) return <NotEnoughHistory />;
 
   return (

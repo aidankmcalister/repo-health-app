@@ -95,17 +95,18 @@ model Dashboard {
 }
 
 model Repo {
-  id            String          @id @default(cuid())
-  owner         String
-  name          String
-  defaultBranch String?
-  lastSyncedAt  DateTime?
-  backfilledAt  DateTime?
-  stars         Int?
-  openIssues    Int?
-  createdAt     DateTime        @default(now())
-  dashboards    DashboardRepo[]
-  snapshots     Snapshot[]
+  id              String          @id @default(cuid())
+  owner           String
+  name            String
+  defaultBranch   String?
+  lastSyncedAt    DateTime?
+  backfilledAt    DateTime?
+  backfillSkipped String[]
+  stars           Int?
+  openIssues      Int?
+  createdAt       DateTime        @default(now())
+  dashboards      DashboardRepo[]
+  snapshots       Snapshot[]
 
   @@unique([owner, name])
   @@map("repo")

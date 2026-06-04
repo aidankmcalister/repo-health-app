@@ -54,7 +54,12 @@ type ViewDialogProps = {
   repos: ViewRepo[];
   history: HistoryPoint[];
 } & (
-  | { mode?: "create"; viewId?: never; initialType?: never; initialConfig?: never }
+  | {
+      mode?: "create";
+      viewId?: never;
+      initialType?: never;
+      initialConfig?: never;
+    }
   | {
       mode: "edit";
       viewId: string;
@@ -73,7 +78,7 @@ export function ViewDialog(props: ViewDialogProps) {
   );
   const [title, setTitle] = useState(isEdit ? props.initialConfig.title : "");
   const [subtitle, setSubtitle] = useState(
-    isEdit ? props.initialConfig.subtitle ?? "" : "",
+    isEdit ? (props.initialConfig.subtitle ?? "") : "",
   );
   const [datapoints, setDatapoints] = useState<ViewDatapoint[]>(
     isEdit ? props.initialConfig.datapoints : [],
@@ -82,21 +87,21 @@ export function ViewDialog(props: ViewDialogProps) {
     isEdit ? props.initialConfig.formula !== null : false,
   );
   const [formula, setFormula] = useState(
-    isEdit ? props.initialConfig.formula ?? "" : "",
+    isEdit ? (props.initialConfig.formula ?? "") : "",
   );
   const [prefix, setPrefix] = useState(
-    isEdit ? props.initialConfig.prefix ?? "" : "",
+    isEdit ? (props.initialConfig.prefix ?? "") : "",
   );
   const [postfix, setPostfix] = useState(
-    isEdit ? props.initialConfig.postfix ?? "" : "",
+    isEdit ? (props.initialConfig.postfix ?? "") : "",
   );
   const [showLegend, setShowLegend] = useState(
     isEdit
-      ? props.initialConfig.showLegend ?? defaultShowLegend(VIEW_TYPE_NUMBER)
+      ? (props.initialConfig.showLegend ?? defaultShowLegend(VIEW_TYPE_NUMBER))
       : defaultShowLegend(VIEW_TYPE_NUMBER),
   );
   const [showRepoInLabels, setShowRepoInLabels] = useState(
-    isEdit ? props.initialConfig.showRepoInLabels ?? false : false,
+    isEdit ? (props.initialConfig.showRepoInLabels ?? false) : false,
   );
   const [yDecimals, setYDecimals] = useState(
     isEdit && props.initialConfig.yAxis?.decimals != null
@@ -104,16 +109,17 @@ export function ViewDialog(props: ViewDialogProps) {
       : "auto",
   );
   const [yPrefix, setYPrefix] = useState(
-    isEdit ? props.initialConfig.yAxis?.prefix ?? "" : "",
+    isEdit ? (props.initialConfig.yAxis?.prefix ?? "") : "",
   );
   const [yPostfix, setYPostfix] = useState(
-    isEdit ? props.initialConfig.yAxis?.postfix ?? "" : "",
+    isEdit ? (props.initialConfig.yAxis?.postfix ?? "") : "",
   );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDelete] = useTransition();
 
-  const canAddDatapoint = repos.length > 0 && datapoints.length < ALIASES.length;
+  const canAddDatapoint =
+    repos.length > 0 && datapoints.length < ALIASES.length;
 
   const config: ViewConfig = {
     title,
@@ -160,7 +166,9 @@ export function ViewDialog(props: ViewDialogProps) {
   }
 
   function removeDatapoint(alias: string) {
-    setDatapoints((current) => current.filter((point) => point.alias !== alias));
+    setDatapoints((current) =>
+      current.filter((point) => point.alias !== alias),
+    );
   }
 
   function handleDelete() {
@@ -195,7 +203,7 @@ export function ViewDialog(props: ViewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-7xl">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{isEdit ? "Edit view" : "New view"}</DialogTitle>
@@ -204,7 +212,7 @@ export function ViewDialog(props: ViewDialogProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid items-start gap-6 md:grid-cols-[1fr_340px]">
+          <div className="grid items-start w-fit gap-6 md:grid-cols-[1fr_340px]">
             <div className="flex flex-col gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="view-title">Title</Label>
@@ -288,7 +296,9 @@ export function ViewDialog(props: ViewDialogProps) {
                     Add repos to this dashboard first.
                   </p>
                 ) : datapoints.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No data points yet.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No data points yet.
+                  </p>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {datapoints.map((point, index) => (
@@ -394,10 +404,9 @@ export function ViewDialog(props: ViewDialogProps) {
                   </>
                 ) : null}
               </div>
-
             </div>
 
-            <div className="flex flex-col gap-4 md:border-l md:pl-6">
+            <div className="flex flex-col gap-4 w-xl md:border-l md:pl-6">
               <div className="flex flex-col gap-2">
                 <Label>Preview</Label>
                 <ViewPreview
@@ -431,7 +440,9 @@ export function ViewDialog(props: ViewDialogProps) {
                   <Label>Y-axis labels</Label>
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">Decimals</span>
+                      <span className="text-xs text-muted-foreground">
+                        Decimals
+                      </span>
                       <Select value={yDecimals} onValueChange={setYDecimals}>
                         <SelectTrigger className="w-28">
                           <SelectValue />
@@ -446,7 +457,9 @@ export function ViewDialog(props: ViewDialogProps) {
                       </Select>
                     </div>
                     <div className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">Prefix</span>
+                      <span className="text-xs text-muted-foreground">
+                        Prefix
+                      </span>
                       <Input
                         value={yPrefix}
                         onChange={(event) => setYPrefix(event.target.value)}
@@ -455,7 +468,9 @@ export function ViewDialog(props: ViewDialogProps) {
                       />
                     </div>
                     <div className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">Postfix</span>
+                      <span className="text-xs text-muted-foreground">
+                        Postfix
+                      </span>
                       <Input
                         value={yPostfix}
                         onChange={(event) => setYPostfix(event.target.value)}

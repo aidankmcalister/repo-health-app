@@ -13,6 +13,7 @@ import type { VisualizationProps } from "./types";
 
 /** Bar Chart: one bar series per data point (or one when a formula is set). */
 export function BarVisualization({ config, data }: VisualizationProps) {
+  if (data.unavailable) return <NotEnoughHistory unavailable />;
   if (data.chartRows.length < 2) return <NotEnoughHistory />;
 
   return (

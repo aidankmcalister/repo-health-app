@@ -20,6 +20,7 @@ type ViewCardRepo = {
   name: string;
   stars: number | null;
   openIssues: number | null;
+  backfillSkipped: string[];
 };
 
 type ViewCardProps = {

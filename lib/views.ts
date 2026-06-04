@@ -120,6 +120,7 @@ export type ViewRepoValues = {
   name: string;
   stars: number | null;
   openIssues: number | null;
+  backfillSkipped?: string[]; // metrics whose history couldn't be backfilled
 };
 
 // Everything a visualization renderer needs.
@@ -133,6 +134,9 @@ export type ViewData = {
   // the human tooltip label; `color` is the series stroke/fill.
   chartRows: Record<string, number>[];
   chartLines: { key: string; label: string; color: string }[];
+  // True when every data point's metric had its history skipped (capped) at
+  // backfill — so charts show "history unavailable" instead of a flat line.
+  unavailable: boolean;
 };
 
 /** Builds the data a view's visualization needs from current values + history. */
@@ -168,12 +172,20 @@ export function buildViewData(
 
   const chart = computeChart(config, repos, history);
 
+  const unavailable =
+    config.datapoints.length > 0 &&
+    config.datapoints.every((dp) => {
+      const repo = repos.find((r) => r.id === dp.repoId);
+      return repo?.backfillSkipped?.includes(dp.metric) ?? false;
+    });
+
   return {
     value: computeViewValue(config, resolve),
     series: computeViewSeries(config, history),
     breakdown,
     chartRows: chart.rows,
     chartLines: chart.lines,
+    unavailable,
   };
 }
 

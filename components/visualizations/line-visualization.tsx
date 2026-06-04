@@ -12,6 +12,7 @@ import type { VisualizationProps } from "./types";
 
 /** Line Chart: one line per data point (or a single line when a formula is set). */
 export function LineVisualization({ config, data }: VisualizationProps) {
+  if (data.unavailable) return <NotEnoughHistory unavailable />;
   if (data.chartRows.length < 2) return <NotEnoughHistory />;
 
   return (

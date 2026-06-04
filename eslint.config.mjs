@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored chart library installed from the @bklit registry.
     "components/charts/**",
+    // One-off maintenance / verification scripts.
+    "scripts/**",
   ]),
 ]);
 

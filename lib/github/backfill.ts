@@ -1,5 +1,5 @@
 import prisma from "@/app/lib/prisma";
-import type { RepoMetric } from "@/lib/metrics";
+import { REPO_METRICS, type RepoMetric } from "@/lib/metrics";
 import { getGithubAccessToken, githubGraphql } from "./client";
 import { fetchRepoData } from "./repo";
 
@@ -88,15 +88,23 @@ export async function backfillRepo(
     }
   }
 
-  if (rows.length > 0) {
-    await prisma.snapshot.createMany({ data: rows });
-  }
+  // Metrics we couldn't reconstruct (event list capped, or no timestamps like
+  // watchers) — so the UI can show "history unavailable" instead of a flat line.
+  const reconstructed = new Set(Object.keys(metricSeries));
+  const backfillSkipped = REPO_METRICS.filter((m) => !reconstructed.has(m));
 
-  // Mark the attempt so it isn't repeated, even if some metrics were skipped.
-  await prisma.repo.update({
-    where: { id: repoId },
-    data: { backfilledAt: new Date() },
-  });
+  // Write the history and stamp the flags atomically. If the flag write fails
+  // (e.g. a stale client), the snapshots roll back too — no history-without-flags
+  // half-state; the repo simply stays eligible for a clean retry.
+  await prisma.$transaction([
+    ...(rows.length > 0
+      ? [prisma.snapshot.createMany({ data: rows })]
+      : []),
+    prisma.repo.update({
+      where: { id: repoId },
+      data: { backfilledAt: new Date(), backfillSkipped },
+    }),
+  ]);
 }
 
 /**

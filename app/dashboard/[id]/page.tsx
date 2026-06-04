@@ -1,4 +1,5 @@
 import { DashboardActions } from "@/app/_components/dashboard-actions";
+import { RepoSyncStatus } from "@/app/_components/repo-sync-status";
 import { ViewCard } from "@/app/_components/view-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,13 +80,16 @@ export default async function DashboardPage({
                   config: view.config as unknown as ViewConfig,
                 }}
                 dashboardId={dashboard.id}
-                repos={repos.map(({ id, owner, name, stars, openIssues }) => ({
-                  id,
-                  owner,
-                  name,
-                  stars,
-                  openIssues,
-                }))}
+                repos={repos.map(
+                  ({ id, owner, name, stars, openIssues, backfillSkipped }) => ({
+                    id,
+                    owner,
+                    name,
+                    stars,
+                    openIssues,
+                    backfillSkipped,
+                  }),
+                )}
                 history={history}
               />
             ))}
@@ -119,6 +123,7 @@ type RepoCardProps = {
     stars: number | null;
     openIssues: number | null;
     lastSyncedAt: Date | null;
+    backfilledAt: Date | null;
   };
 };
 
@@ -159,7 +164,10 @@ function RepoCard({ repo }: RepoCardProps) {
               <span className="truncate">{repo.defaultBranch}</span>
             </span>
           ) : null}
-          <span>{syncedLabel(repo.lastSyncedAt)}</span>
+          <RepoSyncStatus
+            backfilledAt={repo.backfilledAt ? repo.backfilledAt.getTime() : null}
+            lastSyncedAt={repo.lastSyncedAt ? repo.lastSyncedAt.getTime() : null}
+          />
         </div>
       </CardContent>
       </Card>
@@ -169,13 +177,4 @@ function RepoCard({ repo }: RepoCardProps) {
 
 function formatCount(value: number | null): string {
   return value === null ? "—" : value.toLocaleString();
-}
-
-function syncedLabel(lastSyncedAt: Date | null): string {
-  if (!lastSyncedAt) return "Not synced";
-  const date = lastSyncedAt.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-  return `Synced ${date}`;
 }

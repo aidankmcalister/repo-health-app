@@ -126,6 +126,7 @@ function highlightFor(dashboard: Dashboard): {
     name: repo.name,
     stars: repo.stars,
     openIssues: repo.openIssues,
+    backfillSkipped: repo.backfillSkipped,
   }));
   const history = dashboard.repos.flatMap(({ repo }) =>
     repo.snapshots.map((snapshot) => ({

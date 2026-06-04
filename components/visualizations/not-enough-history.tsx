@@ -1,8 +1,10 @@
-/** Shown when a time-series chart has fewer than two data points. */
-export function NotEnoughHistory() {
+/** Empty state for charts: no history yet, or history couldn't be backfilled. */
+export function NotEnoughHistory({ unavailable }: { unavailable?: boolean }) {
   return (
     <p className="py-10 text-center text-sm text-muted-foreground">
-      Not enough history yet — sync over time to chart this.
+      {unavailable
+        ? "History unavailable for this metric."
+        : "Not enough history yet — sync over time to chart this."}
     </p>
   );
 }
