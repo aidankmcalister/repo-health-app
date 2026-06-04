@@ -1033,19 +1033,19 @@ function ViewPreview({
 
   return (
     <div className="flex flex-col gap-3 overflow-hidden rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] px-5 py-[18px]">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium leading-tight text-foreground">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm font-medium leading-tight text-foreground">
             {config.title || "Untitled view"}
           </p>
-          {config.subtitle ? (
-            <p className="mt-1 font-mono text-[11.5px] break-words text-[var(--ink-subtle)]">
-              {config.subtitle}
-            </p>
+          {config.compare && data.delta !== null ? (
+            <ChangePill value={data.delta} />
           ) : null}
         </div>
-        {config.compare && data.delta !== null ? (
-          <ChangePill value={data.delta} />
+        {config.subtitle ? (
+          <p className="font-mono text-[11.5px] break-words text-[var(--ink-subtle)]">
+            {config.subtitle}
+          </p>
         ) : null}
       </div>
 

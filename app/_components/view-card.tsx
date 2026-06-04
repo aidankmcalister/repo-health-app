@@ -45,31 +45,31 @@ export function ViewCard({ view, dashboardId, repos, history }: ViewCardProps) {
         type === VIEW_TYPE_NUMBER && "overflow-hidden",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium leading-tight text-foreground">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm font-medium leading-tight text-foreground">
             {config.title || "Untitled view"}
           </p>
-          {config.subtitle ? (
-            <p className="mt-1 font-mono text-[11.5px] break-words text-[var(--ink-subtle)]">
-              {config.subtitle}
-            </p>
-          ) : null}
+          <div className="flex shrink-0 items-center gap-2">
+            {config.compare && data.delta !== null ? (
+              <ChangePill value={data.delta} />
+            ) : null}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setEditOpen(true)}
+              className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+            >
+              <Pencil className="size-4" />
+              <span className="sr-only">Edit view</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {config.compare && data.delta !== null ? (
-            <ChangePill value={data.delta} />
-          ) : null}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setEditOpen(true)}
-            className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-          >
-            <Pencil className="size-4" />
-            <span className="sr-only">Edit view</span>
-          </Button>
-        </div>
+        {config.subtitle ? (
+          <p className="font-mono text-[11.5px] break-words text-[var(--ink-subtle)]">
+            {config.subtitle}
+          </p>
+        ) : null}
       </div>
 
       <Visualization type={type} config={config} data={data} />
