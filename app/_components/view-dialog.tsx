@@ -1039,7 +1039,7 @@ function ViewPreview({
             {config.title || "Untitled view"}
           </p>
           {config.subtitle ? (
-            <p className="mt-1 truncate font-mono text-[11.5px] text-[var(--ink-subtle)]">
+            <p className="mt-1 font-mono text-[11.5px] break-words text-[var(--ink-subtle)]">
               {config.subtitle}
             </p>
           ) : null}

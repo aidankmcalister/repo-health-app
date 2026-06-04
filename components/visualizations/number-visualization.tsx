@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import {
   aggregationLabel,
   datapointColor,
@@ -20,12 +19,7 @@ export function NumberVisualization({ config, data }: VisualizationProps) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div
-        className={cn(
-          "flex flex-1 flex-col justify-center py-4",
-          showSparkline ? "items-start text-left" : "items-center text-center",
-        )}
-      >
+      <div className="flex flex-1 flex-col items-center justify-center py-4 text-center">
         <p className="text-5xl font-semibold tracking-[-1.6px] tabular-nums text-foreground">
           {formatViewValue(data.value, config)}
         </p>
